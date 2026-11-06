@@ -61,29 +61,10 @@
       color: #e2e8f0;
       text-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
     }
-    #species-stats-card {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: rgba(255, 255, 255, 0.88);
-      border: 1px solid rgba(0, 0, 0, 0.12);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border-radius: 9999px;
-      padding: 4px 12px 4px 5px;
-      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
-      transition: background 0.25s, border-color 0.25s, color 0.25s, box-shadow 0.25s;
-    }
-    body.dark-theme #species-stats-card {
-      background: rgba(15, 23, 42, 0.88);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
-      color: #e2e8f0;
-    }
-    /* Circular Donut Ring Chart */
-    .donut-chart {
-      width: 32px;
-      height: 32px;
+    /* Circular-Only Population Widget (Zero text/numbers on face) */
+    .circular-widget {
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
       position: relative;
       display: flex;
@@ -91,109 +72,49 @@
       justify-content: center;
       flex-shrink: 0;
       background: conic-gradient(#ef4444 0% 25%, #22c55e 25% 50%, #eab308 50% 75%, #3b82f6 75% 100%);
-      box-shadow: 0 0 8px rgba(0, 0, 0, 0.35);
-      transition: background 0.2s ease;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      border: 1.5px solid rgba(255, 255, 255, 0.20);
+      cursor: pointer;
+      transition: transform 0.18s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.18s ease;
     }
-    .donut-hole {
+    body:not(.dark-theme) .circular-widget {
+      border: 1.5px solid rgba(0, 0, 0, 0.14);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    }
+    .circular-widget:hover {
+      transform: scale(1.12);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    }
+    .donut-core {
       width: 20px;
       height: 20px;
       border-radius: 50%;
-      background: #f8fafc;
+      background: #0f172a;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 7.5px;
-      font-weight: 800;
-      font-variant-numeric: tabular-nums;
-      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7);
+      transition: background 0.25s ease;
     }
-    body.dark-theme .donut-hole {
-      background: #0f172a;
-      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+    body:not(.dark-theme) .donut-core {
+      background: #ffffff;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
     }
-    .stats-species-row {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-    }
-    .stat-pill {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .stat-dot {
-      width: 7px;
-      height: 7px;
+    .donut-dot {
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
-      flex-shrink: 0;
+      background: #38bdf8;
+      box-shadow: 0 0 5px #38bdf8;
+      transition: background 0.3s ease, box-shadow 0.3s ease;
     }
-    .dot-red {
-      background: #ef4444;
-      box-shadow: 0 0 5px #ef4444;
+    .donut-dot.growing {
+      background: #4ade80;
+      box-shadow: 0 0 7px #4ade80;
     }
-    .dot-green {
-      background: #22c55e;
-      box-shadow: 0 0 5px #22c55e;
-    }
-    .dot-yellow {
-      background: #eab308;
-      box-shadow: 0 0 5px #eab308;
-    }
-    .dot-blue {
-      background: #3b82f6;
-      box-shadow: 0 0 5px #3b82f6;
-    }
-    .stat-num {
-      font-weight: 700;
-      font-size: 10.5px;
-      font-variant-numeric: tabular-nums;
-    }
-    .stat-hud-divider {
-      width: 1px;
-      height: 14px;
-      background: rgba(125, 125, 125, 0.3);
-      margin: 0 1px;
-    }
-    .total-pill {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .total-label {
-      font-size: 8px;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      color: #64748b;
-    }
-    body.dark-theme .total-label {
-      color: #94a3b8;
-    }
-    .total-num {
-      color: #0284c7;
-      font-weight: 700;
-      font-size: 10.5px;
-      font-variant-numeric: tabular-nums;
-    }
-    body.dark-theme .total-num {
-      color: #38bdf8;
-    }
-    .growth-pos {
-      color: #16a34a;
-    }
-    body.dark-theme .growth-pos {
-      color: #4ade80;
-    }
-    .growth-neg {
-      color: #dc2626;
-    }
-    body.dark-theme .growth-neg {
-      color: #f87171;
-    }
-    .growth-zero {
-      color: #64748b;
-    }
-    body.dark-theme .growth-zero {
-      color: #94a3b8;
+    .donut-dot.declining {
+      background: #f87171;
+      box-shadow: 0 0 7px #f87171;
     }
     #matrix-panel {
       position: fixed;
@@ -704,39 +625,9 @@
 <body class="dark-theme">
   <div id="top-left-hud">
     <div id="fps">-- FPS</div>
-    <div id="species-stats-card">
-      <!-- Circular Donut Chart: 4-color distribution ring + center delta vs initial seed -->
-      <div class="donut-chart" id="donut-chart" title="Distribution ratio (Red | Green | Yellow | Blue) with delta vs initial seed">
-        <div class="donut-hole">
-          <span id="donut-delta" class="growth-zero">0%</span>
-        </div>
-      </div>
-
-      <!-- Minimalist Species Counts -->
-      <div class="stats-species-row">
-        <div class="stat-pill" title="Red (Sprinters)">
-          <span class="stat-dot dot-red"></span>
-          <span class="stat-num" id="stat-red">--</span>
-        </div>
-        <div class="stat-pill" title="Green (Cruisers)">
-          <span class="stat-dot dot-green"></span>
-          <span class="stat-num" id="stat-green">--</span>
-        </div>
-        <div class="stat-pill" title="Yellow (Darters)">
-          <span class="stat-dot dot-yellow"></span>
-          <span class="stat-num" id="stat-yellow">--</span>
-        </div>
-        <div class="stat-pill" title="Blue (Gliders)">
-          <span class="stat-dot dot-blue"></span>
-          <span class="stat-num" id="stat-blue">--</span>
-        </div>
-
-        <div class="stat-hud-divider"></div>
-
-        <div class="total-pill" title="Total population vs initial base">
-          <span class="total-label">TOTAL</span>
-          <span class="total-num" id="stat-total">--</span>
-        </div>
+    <div class="circular-widget" id="donut-chart" title="Population distribution: Red | Green | Yellow | Blue">
+      <div class="donut-core">
+        <div class="donut-dot" id="donut-dot"></div>
       </div>
     </div>
   </div>
@@ -1515,13 +1406,8 @@
       const initialSpeciesPop = [0, 0, 0, 0];
 
       const popValEl = document.getElementById('pop-val');
-      const statRedEl = document.getElementById('stat-red');
-      const statGreenEl = document.getElementById('stat-green');
-      const statYellowEl = document.getElementById('stat-yellow');
-      const statBlueEl = document.getElementById('stat-blue');
-      const statTotalEl = document.getElementById('stat-total');
       const donutChartEl = document.getElementById('donut-chart');
-      const donutDeltaEl = document.getElementById('donut-delta');
+      const donutDotEl = document.getElementById('donut-dot');
 
       function updatePopulationStats() {
         let c0 = 0, c1 = 0, c2 = 0, c3 = 0;
@@ -1533,14 +1419,9 @@
           else if (ci === 2) c2++;
           else if (ci === 3) c3++;
         }
-        if (statRedEl) statRedEl.textContent = c0;
-        if (statGreenEl) statGreenEl.textContent = c1;
-        if (statYellowEl) statYellowEl.textContent = c2;
-        if (statBlueEl) statBlueEl.textContent = c3;
-        if (statTotalEl) statTotalEl.textContent = len.toLocaleString();
         if (popValEl) popValEl.textContent = len.toLocaleString();
 
-        // Update Circular Donut Chart (4-color ratio ring + center delta vs initial seed)
+        // Update Circular Chart (4-color ratio ring + center dot indicator, zero numbers on face)
         if (donutChartEl && len > 0) {
           const s0 = (c0 / len) * 100;
           const s1 = (c1 / len) * 100;
@@ -1553,12 +1434,10 @@
           const totalInit = initialTotalPop || 1;
           const totalDeltaPct = Math.round(((len - totalInit) / totalInit) * 100);
           const tSign = totalDeltaPct > 0 ? '+' : '';
-          donutChartEl.title = `Distribution: Red ${Math.round(s0)}% | Green ${Math.round(s1)}% | Yellow ${Math.round(s2)}% | Blue ${Math.round(100 - p2)}%\nTotal change: ${tSign}${totalDeltaPct}% (current: ${len}, init: ${totalInit})`;
+          donutChartEl.title = `Red: ${c0} (${Math.round(s0)}%) | Green: ${c1} (${Math.round(s1)}%) | Yellow: ${c2} (${Math.round(s2)}%) | Blue: ${c3} (${Math.round(100 - p2)}%)\nTotal: ${len.toLocaleString()} (${tSign}${totalDeltaPct}% vs init: ${totalInit.toLocaleString()})`;
 
-          if (donutDeltaEl) {
-            const tCls = totalDeltaPct > 0 ? 'growth-pos' : (totalDeltaPct < 0 ? 'growth-neg' : 'growth-zero');
-            donutDeltaEl.className = tCls;
-            donutDeltaEl.textContent = `${tSign}${totalDeltaPct}%`;
+          if (donutDotEl) {
+            donutDotEl.className = 'donut-dot' + (totalDeltaPct > 2 ? ' growing' : (totalDeltaPct < -2 ? ' declining' : ''));
           }
         }
       }
