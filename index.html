@@ -32,24 +32,105 @@
     canvas:active {
       cursor: grabbing;
     }
-    #fps {
+    #top-left-hud {
       position: fixed;
       top: 14px;
       left: 16px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-      color: #334155;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 20;
       pointer-events: none;
       user-select: none;
-      z-index: 10;
-      opacity: 0.85;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    #fps {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #334155;
+      opacity: 0.9;
       transition: color 0.25s;
     }
     body.dark-theme #fps {
       color: #e2e8f0;
       text-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
+    }
+    #species-stats-bar {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 9999px;
+      padding: 3px 11px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      font-size: 10px;
+      transition: background 0.25s, border-color 0.25s, color 0.25s, box-shadow 0.25s;
+    }
+    body.dark-theme #species-stats-bar {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+      color: #e2e8f0;
+    }
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .stat-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-red {
+      background: #ef4444;
+      box-shadow: 0 0 5px #ef4444;
+    }
+    .dot-green {
+      background: #22c55e;
+      box-shadow: 0 0 5px #22c55e;
+    }
+    .dot-yellow {
+      background: #eab308;
+      box-shadow: 0 0 5px #eab308;
+    }
+    .dot-blue {
+      background: #3b82f6;
+      box-shadow: 0 0 5px #3b82f6;
+    }
+    .stat-val {
+      font-weight: 700;
+      font-size: 10px;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-divider {
+      width: 1px;
+      height: 11px;
+      background: rgba(125, 125, 125, 0.3);
+      margin: 0 1px;
+    }
+    .stat-item.total {
+      gap: 5px;
+    }
+    .stat-label {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: #64748b;
+    }
+    body.dark-theme .stat-label {
+      color: #94a3b8;
+    }
+    .stat-item.total .stat-val {
+      color: #0284c7;
+    }
+    body.dark-theme .stat-item.total .stat-val {
+      color: #38bdf8;
     }
     #matrix-panel {
       position: fixed;
@@ -558,7 +639,32 @@
   </style>
 </head>
 <body class="dark-theme">
-  <div id="fps">-- FPS</div>
+  <div id="top-left-hud">
+    <div id="fps">-- FPS</div>
+    <div id="species-stats-bar">
+      <div class="stat-item" title="Red (Sprinters)">
+        <span class="stat-dot dot-red"></span>
+        <span class="stat-val" id="stat-red">--</span>
+      </div>
+      <div class="stat-item" title="Green (Cruisers)">
+        <span class="stat-dot dot-green"></span>
+        <span class="stat-val" id="stat-green">--</span>
+      </div>
+      <div class="stat-item" title="Yellow (Darters)">
+        <span class="stat-dot dot-yellow"></span>
+        <span class="stat-val" id="stat-yellow">--</span>
+      </div>
+      <div class="stat-item" title="Blue (Gliders)">
+        <span class="stat-dot dot-blue"></span>
+        <span class="stat-val" id="stat-blue">--</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item total" title="Total Active Tiles">
+        <span class="stat-label">TOTAL</span>
+        <span class="stat-val" id="stat-total">--</span>
+      </div>
+    </div>
+  </div>
   <div id="matrix-panel">
     <div class="panel-header">
       <span class="panel-title">FORCES (A &rarr; B)</span>
@@ -1331,6 +1437,30 @@
       const tiles = [];
       const tileById = new Map();
       const popValEl = document.getElementById('pop-val');
+      const statRedEl = document.getElementById('stat-red');
+      const statGreenEl = document.getElementById('stat-green');
+      const statYellowEl = document.getElementById('stat-yellow');
+      const statBlueEl = document.getElementById('stat-blue');
+      const statTotalEl = document.getElementById('stat-total');
+
+      function updatePopulationStats() {
+        let c0 = 0, c1 = 0, c2 = 0, c3 = 0;
+        const len = tiles.length;
+        for (let i = 0; i < len; i++) {
+          const ci = tiles[i].colorIndex;
+          if (ci === 0) c0++;
+          else if (ci === 1) c1++;
+          else if (ci === 2) c2++;
+          else if (ci === 3) c3++;
+        }
+        if (statRedEl) statRedEl.textContent = c0;
+        if (statGreenEl) statGreenEl.textContent = c1;
+        if (statYellowEl) statYellowEl.textContent = c2;
+        if (statBlueEl) statBlueEl.textContent = c3;
+        if (statTotalEl) statTotalEl.textContent = len;
+        if (popValEl) popValEl.textContent = len;
+      }
+      let statsTimer = 0;
       let seed = 42;
       function pseudoRandom() {
         seed = (seed * 9301 + 49297) % 233280;
@@ -1392,7 +1522,7 @@
             placed++;
           }
         }
-        if (popValEl) popValEl.textContent = tiles.length;
+        updatePopulationStats();
       }
 
       // Precomputed chiclet 2D profile with rounded corners (8 vertices around perimeter)
@@ -2044,7 +2174,7 @@
           }
         }
 
-        if (popValEl) popValEl.textContent = tiles.length;
+        updatePopulationStats();
       }
 
       buildMatrixTable();
@@ -2111,6 +2241,12 @@
 
       // Update simulation: 3D tiles navigate up/down/left/right and cross cube faces
       function updateTileSimulation(dt) {
+        statsTimer += dt;
+        if (statsTimer >= 0.15) {
+          statsTimer = 0;
+          updatePopulationStats();
+        }
+
         // Ensure fast ID lookup map is updated
         if (!lifecycleEnabled) {
           tileById.clear();
