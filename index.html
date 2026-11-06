@@ -3,7 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>31x31x31 3D Colorless Glass Cube</title>
+  <title>PartiCube</title>
+  <meta name="description" content="PartiCube: Real-time 3D multi-species particle cellular automata on a glass cube in WebGL.">
+  <meta property="og:title" content="PartiCube">
+  <meta property="og:description" content="Real-time 3D multi-species particle cellular automata on a glass cube in WebGL.">
+  <meta property="og:url" content="https://ozlphrt.github.io/PartiCube/">
+  <meta property="og:type" content="website">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧊</text></svg>">
   <style>
     * {
@@ -1750,7 +1755,7 @@
         step = SIZE / subdivisions; // 1.0
         baseDistance = 152.0 * (subdivisions / 81.0);
 
-        document.title = `${subdivisions}x${subdivisions}x${subdivisions} 3D Colorless Glass Cube`;
+        document.title = 'PartiCube';
         if (cubeSizeVal) cubeSizeVal.innerHTML = `${subdivisions}&times;${subdivisions}`;
         updateSliderTrack(subdivisions);
 
