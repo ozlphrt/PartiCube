@@ -61,10 +61,10 @@
       color: #e2e8f0;
       text-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
     }
-    /* Circular-Only Population Widget (Zero text/numbers on face) */
+    /* Circular-Only Population Widget (Prominent, Zero text/numbers on face) */
     .circular-widget {
-      width: 34px;
-      height: 34px;
+      width: 58px;
+      height: 58px;
       border-radius: 50%;
       position: relative;
       display: flex;
@@ -72,47 +72,51 @@
       justify-content: center;
       flex-shrink: 0;
       background: conic-gradient(#ef4444 0% 25%, #22c55e 25% 50%, #eab308 50% 75%, #3b82f6 75% 100%);
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-      border: 1.5px solid rgba(255, 255, 255, 0.20);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+      border: 2px solid rgba(255, 255, 255, 0.25);
       cursor: pointer;
-      transition: transform 0.18s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.18s ease;
+      pointer-events: auto;
+      transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease;
     }
     body:not(.dark-theme) .circular-widget {
-      border: 1.5px solid rgba(0, 0, 0, 0.14);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+      border: 2px solid rgba(0, 0, 0, 0.14);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
     }
     .circular-widget:hover {
-      transform: scale(1.12);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+      transform: scale(1.08);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
     }
     .donut-core {
-      width: 20px;
-      height: 20px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       background: #0f172a;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7);
+      box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.75);
       transition: background 0.25s ease;
     }
     body:not(.dark-theme) .donut-core {
       background: #ffffff;
-      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+      box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
     }
     .donut-dot {
-      width: 6px;
-      height: 6px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
       background: #38bdf8;
-      box-shadow: 0 0 5px #38bdf8;
+      box-shadow: 0 0 8px #38bdf8;
       transition: background 0.3s ease, box-shadow 0.3s ease;
     }
     .donut-dot.growing {
       background: #4ade80;
-      box-shadow: 0 0 7px #4ade80;
+      box-shadow: 0 0 10px #4ade80;
     }
     .donut-dot.declining {
+      background: #f87171;
+      box-shadow: 0 0 10px #f87171;
+    }
       background: #f87171;
       box-shadow: 0 0 7px #f87171;
     }
