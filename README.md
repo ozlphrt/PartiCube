@@ -53,3 +53,4 @@ The project is hosted and executable via GitHub Pages:
 ## 📄 License
 
 MIT License.
+

@@ -50,16 +50,23 @@
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
     #fps {
+      position: fixed;
+      bottom: 14px;
+      left: 16px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 12px;
       font-weight: 700;
       letter-spacing: 0.04em;
       color: #334155;
-      opacity: 0.9;
+      opacity: 0.85;
+      pointer-events: none;
+      user-select: none;
+      z-index: 20;
       transition: color 0.25s;
     }
     body.dark-theme #fps {
-      color: #e2e8f0;
-      text-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
+      color: #94a3b8;
+      text-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
     }
     /* Circular-Only Population Widget (Prominent, Zero text/numbers on face) */
     .circular-widget {
@@ -625,13 +632,13 @@
 </head>
 <body class="dark-theme">
   <div id="top-left-hud">
-    <div id="fps">-- FPS</div>
     <div class="circular-widget" id="donut-chart" title="Population distribution: Red | Green | Yellow | Blue">
       <div class="donut-core">
         <div class="donut-dot" id="donut-dot"></div>
       </div>
     </div>
   </div>
+  <div id="fps">-- FPS</div>
   <div id="matrix-panel">
     <div class="panel-header">
       <span class="panel-title">FORCES (A &rarr; B)</span>
