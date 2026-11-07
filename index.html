@@ -1318,12 +1318,14 @@
           // Combined optical blur factor from Depth of Field (vCoC) and Shutter/Wake Blur (vIsBlur)
           float blurFactor = clamp(vCoC + vIsBlur * 0.90, 0.0, 1.0);
 
-          // 1. Studio Key & Fill Lights
+          // 1. Studio Key & Fill Lights (Warm Key + Cool Rim)
           vec3 light1 = normalize(vec3(0.55, 0.85, 0.55));
           float NdotL1 = max(dot(n, light1), 0.0);
+          vec3 keyColor = vec3(1.0, 0.97, 0.92);
 
           vec3 light2 = normalize(vec3(-0.65, -0.20, 0.70));
           float NdotL2 = max(dot(n, light2), 0.0);
+          vec3 rimColor = vec3(0.68, 0.82, 1.0);
 
           // Specular broadening: sharp 64.0 on crisp tiles, diffused sheen on DoF tiles
           vec3 r1 = reflect(-v, n);
@@ -1351,13 +1353,16 @@
           float baseProminence = mix(0.45, 1.0, depthCurve * 0.60 + faceFactor * 0.40);
           float prominence = baseProminence * backsideDamp;
 
-          // Ambient + Diffuse
-          vec3 ambient = vColor.rgb * (0.34 + 0.16 * prominence + vIsBlur * 0.12);
-          vec3 diffuse = vColor.rgb * (NdotL1 * 0.60 + NdotL2 * 0.25) * (0.45 + 0.55 * prominence);
+          // Gemstone Subsurface Inner-Core Luminance (polished backlit acrylic appearance)
+          float coreGlow = pow(clamp(1.0 - vRadial * 0.90, 0.0, 1.0), 2.2) * 0.26;
+
+          // Ambient + Diffuse (with warm key and cool rim temperature)
+          vec3 ambient = vColor.rgb * (0.32 + 0.16 * prominence + vIsBlur * 0.12 + coreGlow * prominence);
+          vec3 diffuse = vColor.rgb * (keyColor * NdotL1 * 0.58 + rimColor * NdotL2 * 0.24) * (0.45 + 0.55 * prominence);
 
           // Specular highlights (suppressed on soft motion-blur / wake slices so they never create hard glare lines)
           float specIntensity = (0.08 + 0.92 * outwardSmooth) * (0.35 + 0.65 * prominence) * (1.0 - vIsBlur * 0.88);
-          vec3 specular = vec3(1.0) * (spec1 * 0.85 + spec2 * 0.30 + fresnel * 0.35) * specIntensity;
+          vec3 specular = (keyColor * spec1 * 0.85 + rimColor * spec2 * 0.30 + vec3(1.0) * fresnel * 0.35) * specIntensity;
 
           // Atmospheric & Depth-of-Field haze: blends out-of-focus rear tiles smoothly into the interior mist
           vec3 bgMist = mix(vec3(0.05, 0.07, 0.11), vec3(0.78, 0.82, 0.87), uIsLight);
@@ -3944,6 +3949,14 @@
           rotateCube(velX, velY);
           velX *= 0.975;
           velY *= 0.975;
+
+          // Cinematic idle turntable: slowly and elegantly showcase the cube if untouched for > 6.5s
+          const idleTime = now - lastMoveTime;
+          if (idleTime > 6500) {
+            const idleFade = Math.min((idleTime - 6500) / 2500, 1.0);
+            rotateCube(0.0016 * idleFade, Math.sin(now * 0.0005) * 0.0003 * idleFade);
+          }
+
           if (balanceEnabled) {
             applyGravitationalBalance(dt);
           } else {
