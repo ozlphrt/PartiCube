@@ -1353,11 +1353,8 @@
           float baseProminence = mix(0.45, 1.0, depthCurve * 0.60 + faceFactor * 0.40);
           float prominence = baseProminence * backsideDamp;
 
-          // Gemstone Subsurface Inner-Core Luminance (polished backlit acrylic appearance)
-          float coreGlow = pow(clamp(1.0 - vRadial * 0.90, 0.0, 1.0), 2.2) * 0.26;
-
           // Ambient + Diffuse (with warm key and cool rim temperature)
-          vec3 ambient = vColor.rgb * (0.32 + 0.16 * prominence + vIsBlur * 0.12 + coreGlow * prominence);
+          vec3 ambient = vColor.rgb * (0.34 + 0.16 * prominence + vIsBlur * 0.12);
           vec3 diffuse = vColor.rgb * (keyColor * NdotL1 * 0.58 + rimColor * NdotL2 * 0.24) * (0.45 + 0.55 * prominence);
 
           // Specular highlights (suppressed on soft motion-blur / wake slices so they never create hard glare lines)
@@ -3950,11 +3947,11 @@
           velX *= 0.975;
           velY *= 0.975;
 
-          // Cinematic idle turntable: slowly and elegantly showcase the cube if untouched for > 6.5s
+          // Cinematic idle turntable: very slow, gentle exhibition showcase if untouched for > 6.5s
           const idleTime = now - lastMoveTime;
           if (idleTime > 6500) {
-            const idleFade = Math.min((idleTime - 6500) / 2500, 1.0);
-            rotateCube(0.0016 * idleFade, Math.sin(now * 0.0005) * 0.0003 * idleFade);
+            const idleFade = Math.min((idleTime - 6500) / 3000, 1.0);
+            rotateCube(0.00045 * idleFade, Math.sin(now * 0.0003) * 0.00008 * idleFade);
           }
 
           if (balanceEnabled) {
