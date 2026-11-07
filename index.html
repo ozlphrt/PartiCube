@@ -3477,8 +3477,12 @@
               t.isMoving = false;
               t.stuckTimer = 0.0;
 
-              // Continuous glide: when driven by forces, chain immediately into next cell with zero pause
-              if ((t.lastDrive || 0) > 0.30 || pseudoRandom() < 0.75) {
+              // For interior tiles (2, 3, 4) in a straight run or convoy: NEVER pause
+              const isInterior = (t.straightRun >= 1 && t.straightRun < 5 && !t.isStraightStop) || 
+                                 (t.hasLeaderAhead && t.hasFollowerBehind);
+
+              // Continuous glide: when driven by forces or part of straight run, chain immediately into next cell with zero pause
+              if (isInterior || (t.lastDrive || 0) > 0.30 || pseudoRandom() < 0.75) {
                 t.waitTimer = 0.0;
                 t._overflow = overflow;
               } else {
@@ -3818,6 +3822,26 @@
                 t.progress = 0.0;
                 t._overflow = 0.0;
                 t.dir = chosen.nextDir;
+
+                const isSameFace = (chosen.targetFace === t.face);
+                const isSameDir = t.dir && (chosen.nextDir[0] === t.dir[0] && chosen.nextDir[1] === t.dir[1]);
+
+                if (t.wasContinuous && isSameFace && isSameDir) {
+                  t.straightRun = (t.straightRun || 1) + 1;
+                } else {
+                  t.straightRun = 1;
+                }
+
+                // Check if next cell ahead in the same direction is open or blocked/edge
+                const nextAheadU = chosen.targetU + chosen.nextDir[0];
+                const nextAheadV = chosen.targetV + chosen.nextDir[1];
+                const canContinueAhead = isSameFace && 
+                                         (nextAheadU >= 0 && nextAheadU < subdivisions && 
+                                          nextAheadV >= 0 && nextAheadV < subdivisions && 
+                                          faceGrids[chosen.targetFace][nextAheadU][nextAheadV] === -1);
+
+                // Stop with Ease-Out at 5th tile or when reaching end of straight path
+                t.isStraightStop = (t.straightRun >= 5) || !canContinueAhead;
                 t.lastDrive = Math.max(0, chosen.score);
                 const urgency = Math.min(t.lastDrive * 0.06, 1.1);
                 const speedMultiplier = 1.0 + (forcePowerMultiplier - 1.0) * 0.22;
@@ -3877,14 +3901,31 @@
       }
 
       // Convoy and Multi-Tile Straight Line Easing:
-      // When 2+ tiles move in a straight line (e.g. 5 tiles):
-      // - 1st tile (head): Ease-Out into destination
-      // - 5th/last tile (tail): Ease-In from departure
-      // - Interior tiles (2, 3, 4): Linear cruise velocity for seamless laminar flow
+      // When tiles move in a straight line (e.g. 5 tiles):
+      // - 1st tile: Starts with Ease-In from rest (acceleration from 0 to cruise velocity)
+      // - Interior tiles (2, 3, 4): Linear cruise velocity with zero slowdown and zero pause
+      // - 5th tile: Stops with Ease-Out into destination (deceleration from cruise velocity to 0)
       // - Standalone single-tile move: Full harmonic Ease-In / Ease-Out
       function getTileEase(t, p) {
         if (!t || !t.isMoving) return p;
 
+        // 1. Straight line multi-step sequence (tiles 1..5):
+        if (t.straightRun) {
+          if (t.straightRun === 1 && !t.isStraightStop) {
+            // 1st tile: Starts with Ease-In from rest
+            return p * p * (2.0 - p);
+          }
+          if (t.straightRun >= 2 && t.straightRun < 5 && !t.isStraightStop) {
+            // Interior tiles (2, 3, 4): Linear cruise velocity, zero slowdown
+            return p;
+          }
+          if (t.straightRun >= 5 || (t.straightRun > 1 && t.isStraightStop)) {
+            // 5th tile (or stopping tile): Stops at Ease-Out into destination
+            return -p * p * p + p * p + p;
+          }
+        }
+
+        // 2. Spatial convoy detection (multiple adjacent tiles moving simultaneously):
         const du = t.dir ? t.dir[0] : 0;
         const dv = t.dir ? t.dir[1] : 0;
         let hasLeaderAhead = false;
@@ -3917,17 +3958,20 @@
           }
         }
 
-        // 1st tile at head of convoy: Ease-Out into destination
-        if (!hasLeaderAhead && hasFollowerBehind) {
-          return -p * p * p + p * p + p;
-        }
-        // Last tile at tail of convoy: Ease-In from departure
-        if (hasLeaderAhead && !hasFollowerBehind) {
+        t.hasLeaderAhead = hasLeaderAhead;
+        t.hasFollowerBehind = hasFollowerBehind;
+
+        // 1st tile starting the movement: Starts with Ease-In from rest
+        if (!hasFollowerBehind && hasLeaderAhead) {
           return p * p * (2.0 - p);
         }
-        // Interior tiles in line: Constant cruise velocity
+        // Interior tiles in line (2, 3, 4): Linear cruise velocity (no slowdown)
         if (hasLeaderAhead && hasFollowerBehind) {
           return p;
+        }
+        // 5th/final tile stopping the movement: Stops with Ease-Out into destination
+        if (hasLeaderAhead && !hasFollowerBehind) {
+          return -p * p * p + p * p + p;
         }
 
         // Standalone isolated move: Harmonic S-curve (both Ease-In and Ease-Out)
