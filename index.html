@@ -803,7 +803,7 @@
     }
   </style>
 </head>
-<body class="dark-theme">
+<body>
   <div id="preset-hud" title="Active preset & goal progress (Auto-cycles to next preset upon reaching 100% completion)">
     <div class="preset-hud-top">
       <span class="preset-hud-name" id="preset-hud-name">TRIBES</span>
@@ -868,6 +868,22 @@
           <button class="preset-btn" data-color-preset="sunset" title="Warm Sunset: Crimson, Flame, Amber, Plum">Sunset</button>
           <button class="preset-btn" data-color-preset="glacier" title="Nordic Glacier: Teal, Mint, Frost, Ultramarine">Glacier</button>
           <button class="preset-btn active" data-color-preset="earth" title="Forest Earth: Terracotta, Fern, Ochre, Moss">Earth</button>
+        </div>
+
+        <div class="slider-container" style="margin-top:6px; padding-top:6px;">
+          <div class="slider-header">
+            <span class="slider-title">% PAINTED TILES</span>
+            <span id="painted-pct-val" class="slider-badge">25%</span>
+          </div>
+          <div class="slider-wrapper">
+            <input type="range" id="painted-pct-slider" class="modern-slider" min="5" max="60" step="5" value="25">
+            <div class="slider-ticks">
+              <span>5%</span>
+              <span>25%</span>
+              <span>45%</span>
+              <span>60%</span>
+            </div>
+          </div>
         </div>
 
         <div class="slider-container" style="margin-top:6px; padding-top:6px;">
@@ -1963,10 +1979,10 @@
       const panelHeader = document.getElementById('panel-header');
       const matrixGridContainer = document.getElementById('matrix-grid-container');
       const themeBtn = document.getElementById('theme-btn');
-      let isLight = false; // Dark mode default
+      let isLight = true; // Light mode default
 
       if (themeBtn) {
-        themeBtn.title = 'Switch to White Theme';
+        themeBtn.title = 'Switch to Dark Theme';
         themeBtn.addEventListener('click', () => {
           isLight = !isLight;
           document.body.classList.toggle('dark-theme', !isLight);
@@ -1974,6 +1990,7 @@
           updateSliderTrack();
           updateSpeedSliderTrack();
           updateForcePowerSliderTrack();
+          if (typeof updatePaintedPctSliderTrack === 'function') updatePaintedPctSliderTrack();
         });
       }
 
@@ -2184,8 +2201,8 @@
           faceGrids[f] = Array.from({length: subdivisions}, () => new Int32Array(subdivisions).fill(-1));
         }
 
-        // Re-seed tiles cleanly at exactly 25% of new cube capacity
-        const targetPop = Math.round(0.25 * 6 * subdivisions * subdivisions);
+        // Re-seed tiles cleanly at exactly populationCoveragePct of new cube capacity
+        const targetPop = Math.round((populationCoveragePct / 100) * 6 * subdivisions * subdivisions);
         seedTiles(targetPop);
       }
 
@@ -2246,6 +2263,105 @@
           updateSpeedSliderTrack(simSpeedMultiplier);
         });
         updateSpeedSliderTrack(simSpeedMultiplier);
+      }
+
+      // --- % of Painted Tiles Slider Controller ---
+      let populationCoveragePct = 25;
+      const paintedPctSlider = document.getElementById('painted-pct-slider');
+      const paintedPctVal = document.getElementById('painted-pct-val');
+
+      function updatePaintedPctSliderTrack(val) {
+        if (!paintedPctSlider) return;
+        const cur = parseFloat(val !== undefined ? val : paintedPctSlider.value);
+        const min = parseFloat(paintedPctSlider.min) || 5;
+        const max = parseFloat(paintedPctSlider.max) || 60;
+        const pct = Math.max(0, Math.min(100, ((cur - min) / (max - min)) * 100));
+        const activeColor = isLight ? '#0284c7' : '#38bdf8';
+        const inactiveColor = isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.12)';
+        const grad = `linear-gradient(90deg, ${activeColor} 0%, ${activeColor} ${pct.toFixed(1)}%, ${inactiveColor} ${pct.toFixed(1)}%, ${inactiveColor} 100%)`;
+        paintedPctSlider.style.setProperty('--track-fill', grad);
+      }
+
+      function adjustPopulationCoverage(newPct) {
+        populationCoveragePct = newPct;
+        const totalCapacity = 6 * subdivisions * subdivisions;
+        const targetPop = Math.round((populationCoveragePct / 100) * totalCapacity);
+        const curPop = tiles.filter(t => !t.isDying).length;
+
+        if (targetPop > curPop) {
+          let needed = targetPop - curPop;
+          let attempts = 0;
+          while (needed > 0 && attempts < totalCapacity) {
+            attempts++;
+            const face = Math.floor(pseudoRandom() * 6);
+            const u = Math.floor(pseudoRandom() * subdivisions);
+            const v = Math.floor(pseudoRandom() * subdivisions);
+            if (faceGrids[face][u][v] === -1) {
+              const colorIdx = Math.floor(pseudoRandom() * 4);
+              const col = colors[colorIdx];
+              const bSpeed = COLOR_BASE_SPEEDS[colorIdx];
+              const wRange = COLOR_WAIT_RANGES[colorIdx];
+              const id = tileIdCounter++;
+              faceGrids[face][u][v] = id;
+              const newTile = {
+                id: id,
+                face: face,
+                u: u,
+                v: v,
+                fromFace: face,
+                fromU: u,
+                fromV: v,
+                prevFace: -1,
+                prevU: -1,
+                prevV: -1,
+                targetFace: face,
+                targetU: u,
+                targetV: v,
+                isMoving: false,
+                progress: 0.0,
+                moveSpeed: bSpeed + pseudoRandom() * 0.4,
+                waitTimer: wRange[0] + pseudoRandom() * (wRange[1] - wRange[0]),
+                dir: pseudoRandom() > 0.5 ? [1, 0] : [0, 1],
+                vx: 0, vy: 0, vz: 0,
+                stuckTimer: 0.0,
+                colorIndex: colorIdx,
+                color: col,
+                energy: 1.0,
+                age: 0.0,
+                scale: 0.01,
+                isDying: false,
+                isSpawning: true,
+                trailAlpha: 0.0,
+                trail2Alpha: 0.0,
+                trail3Alpha: 0.0,
+                recentHistory: []
+              };
+              tileById.set(id, newTile);
+              tiles.push(newTile);
+              needed--;
+            }
+          }
+        } else if (targetPop < curPop) {
+          let excess = curPop - targetPop;
+          for (let i = tiles.length - 1; i >= 0 && excess > 0; i--) {
+            const t = tiles[i];
+            if (!t.isDying) {
+              t.isDying = true;
+              excess--;
+            }
+          }
+        }
+        updatePopulationStats();
+      }
+
+      if (paintedPctSlider) {
+        paintedPctSlider.addEventListener('input', (e) => {
+          const val = parseInt(e.target.value);
+          if (paintedPctVal) paintedPctVal.textContent = `${val}%`;
+          adjustPopulationCoverage(val);
+          updatePaintedPctSliderTrack(val);
+        });
+        updatePaintedPctSliderTrack(populationCoveragePct);
       }
 
       // --- Life Cycle: Reproduction & Decease Dynamics ---
@@ -2691,10 +2807,10 @@
         if (!lifecycleEnabled) return;
 
         const totalCapacity = 6 * subdivisions * subdivisions;
-        const targetPop = Math.round(0.25 * totalCapacity);
+        const targetPop = Math.round((populationCoveragePct / 100) * totalCapacity);
         const targetPerSpecies = Math.round(targetPop / 4);
         const maxPerSpecies = Math.round(targetPerSpecies * 1.06);
-        const minPerSpecies = Math.max(12, Math.round(targetPerSpecies * 0.94));
+        const minPerSpecies = Math.max(8, Math.round(targetPerSpecies * 0.94));
 
         tileById.clear();
         const speciesCounts = [0, 0, 0, 0];
@@ -3545,7 +3661,7 @@
                 t.targetU = chosen.targetU;
                 t.targetV = chosen.targetV;
                 t.wasContinuous = (t._overflow > 0);
-                t.progress = t._overflow || 0.0;
+                t.progress = 0.0;
                 t._overflow = 0.0;
                 t.dir = chosen.nextDir;
                 t.lastDrive = Math.max(0, chosen.score);
@@ -3608,10 +3724,8 @@
 
       function writeTileAtProgress(data, ptr, t, p, alpha, scaleMult, isMotionBlur = false) {
         if (t.isMoving && t.targetFace !== t.fromFace) {
-          // Clean 90-degree corner transition swiping across the outer face edge:
-          const ease = t.wasContinuous
-            ? (0.85 * p + 0.15 * (0.5 - 0.5 * Math.cos(p * Math.PI)))
-            : (0.68 * p + 0.32 * (0.5 - 0.5 * Math.cos(p * Math.PI)));
+          // Harmonic physical ease-in and ease-out S-curve for cushioned corner transition
+          const ease = 0.5 - 0.5 * Math.cos(p * Math.PI);
           const theta = ease * Math.PI * 0.5;
 
           const b1 = faceBases[t.fromFace];
@@ -3684,9 +3798,8 @@
           const b = faceBases[t.face];
           nX = b.n[0]; nY = b.n[1]; nZ = b.n[2];
           if (t.isMoving) {
-            const ease = t.wasContinuous
-              ? (0.90 * p + 0.10 * (0.5 - 0.5 * Math.cos(p * Math.PI)))
-              : (0.72 * p + 0.28 * (0.5 - 0.5 * Math.cos(p * Math.PI)));
+            // Harmonic physical ease-in and ease-out S-curve (zero abrupt start, zero abrupt halt)
+            const ease = 0.5 - 0.5 * Math.cos(p * Math.PI);
             const u1 = -HALF + (t.fromU + 0.5) * step;
             const v1 = -HALF + (t.fromV + 0.5) * step;
             const u2 = -HALF + (t.targetU + 0.5) * step;
@@ -3795,7 +3908,8 @@
             const speedNorm = Math.min(1.35, Math.max(0.45, (t.moveSpeed || 1.5) * 0.45));
             let nz = faceNz[t.face];
             if (t.targetFace !== t.fromFace) {
-              const theta = t.progress * Math.PI * 0.5;
+              const easeProgress = 0.5 - 0.5 * Math.cos(t.progress * Math.PI);
+              const theta = easeProgress * Math.PI * 0.5;
               nz = Math.cos(theta) * faceNz[t.fromFace] + Math.sin(theta) * faceNz[t.targetFace];
             }
             const pSample = Math.max(0.0, t.progress - 0.12 * speedNorm);
@@ -3817,9 +3931,7 @@
           if (!t) continue;
           let nz = faceNz[t.face];
           if (t.isMoving && t.targetFace !== t.fromFace) {
-            const ease = t.wasContinuous
-              ? (0.85 * t.progress + 0.15 * (0.5 - 0.5 * Math.cos(t.progress * Math.PI)))
-              : (0.68 * t.progress + 0.32 * (0.5 - 0.5 * Math.cos(t.progress * Math.PI)));
+            const ease = 0.5 - 0.5 * Math.cos(t.progress * Math.PI);
             const theta = ease * Math.PI * 0.5;
             nz = Math.cos(theta) * faceNz[t.fromFace] + Math.sin(theta) * faceNz[t.targetFace];
           }
