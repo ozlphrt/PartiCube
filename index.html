@@ -859,15 +859,15 @@
 
         <div style="font-size:9px; font-weight:700; display:flex; justify-content:space-between; align-items:center; margin-top:5px; margin-bottom:3px;">
           <span>COLOR PALETTE</span>
-          <span id="palette-name-badge" class="slider-badge" style="font-size:8px; padding:1px 5px;">Classic</span>
+          <span id="palette-name-badge" class="slider-badge" style="font-size:8px; padding:1px 5px;">Earth</span>
         </div>
         <div class="color-palette-row" id="color-palette-buttons">
-          <button class="preset-btn active" data-color-preset="classic" title="Classic Domino: Red, Green, Yellow, Blue">Classic</button>
+          <button class="preset-btn" data-color-preset="classic" title="Classic Domino: Red, Green, Yellow, Blue">Classic</button>
           <button class="preset-btn" data-color-preset="neon" title="Cyberpunk Neon: Hot Pink, Cyan, Lime, Violet">Neon</button>
           <button class="preset-btn" data-color-preset="pastel" title="Gelato Pastel: Coral, Mint, Butter, Sky">Pastel</button>
           <button class="preset-btn" data-color-preset="sunset" title="Warm Sunset: Crimson, Flame, Amber, Plum">Sunset</button>
           <button class="preset-btn" data-color-preset="glacier" title="Nordic Glacier: Teal, Mint, Frost, Ultramarine">Glacier</button>
-          <button class="preset-btn" data-color-preset="earth" title="Forest Earth: Terracotta, Fern, Ochre, Moss">Earth</button>
+          <button class="preset-btn active" data-color-preset="earth" title="Forest Earth: Terracotta, Fern, Ochre, Moss">Earth</button>
         </div>
 
         <div class="slider-container" style="margin-top:6px; padding-top:6px;">
@@ -1153,10 +1153,10 @@
           vec2 p = (vUv - 0.5) * vec2(uResolution.x / max(uResolution.y, 1.0), 1.0);
           float d = length(p);
 
-          // Subtle physical contact shadow beneath the glass cube
+          // Fast physical contact shadow beneath the glass cube (squared distance avoids expensive sqrt across fullscreen)
           vec2 shadowP = (vUv - vec2(0.5, 0.36)) * vec2(1.0, 3.2);
-          float shadowDist = length(shadowP);
-          float contactShadow = 1.0 - smoothstep(0.12, 0.68, shadowDist) * mix(0.40, 0.22, uIsLight);
+          float shadowDist2 = dot(shadowP, shadowP);
+          float contactShadow = 1.0 - smoothstep(0.014, 0.46, shadowDist2) * mix(0.38, 0.20, uIsLight);
 
           // Light Theme: Clean, bright architectural luminous silver-slate center with gentle cool-gray vignette
           vec3 lightCenter = vec3(0.88, 0.91, 0.94);
@@ -1667,12 +1667,12 @@
       }
 
       // 4. Shiny Plastic Domino Tiles Simulation (Particle Life with Color Attraction/Repulsion Matrix)
-      // 4 Domino Colors: 0: Species 1, 1: Species 2, 2: Species 3, 3: Species 4
+      // 4 Domino Colors: 0: Species 1, 1: Species 2, 2: Species 3, 3: Species 4 (Default Earth Palette)
       let colors = [
-        [0.96, 0.20, 0.24, 1.0], // 0: Red
-        [0.10, 0.88, 0.38, 1.0], // 1: Green
-        [0.98, 0.84, 0.12, 1.0], // 2: Yellow
-        [0.18, 0.60, 0.98, 1.0]  // 3: Blue
+        [0.84, 0.34, 0.24, 1.0], // 0: Terracotta
+        [0.18, 0.74, 0.38, 1.0], // 1: Fern
+        [0.90, 0.70, 0.28, 1.0], // 2: Ochre
+        [0.22, 0.48, 0.58, 1.0]  // 3: Slate Moss
       ];
 
       function colorToHex(c) {
@@ -2321,7 +2321,7 @@
         }
       };
 
-      let currentColorPresetKey = 'classic';
+      let currentColorPresetKey = 'earth';
 
       function applyColorPreset(presetKey) {
         const p = colorPresets[presetKey];
@@ -3570,15 +3570,25 @@
 
 
 
+      // Reusable registers for zero-allocation tile mesh building (Zero GC overhead)
+      let cX = 0, cY = 0, cZ = 0;
+      let tuX = 0, tuY = 0, tuZ = 0;
+      let tvX = 0, tvY = 0, tvZ = 0;
+      let nX = 0, nY = 0, nZ = 0;
+
       function writeGhostInstance(data, ptr, face, u, v, col, alpha, scale, stretchDir) {
         const b = faceBases[face];
-        const C = getCellCenter(face, u, v);
-        // Subtle longitudinal connection along motion axis (never wider than the tile!)
+        const uCoord = -HALF + (u + 0.5) * step;
+        const vCoord = -HALF + (v + 0.5) * step;
+        const cx = uCoord * b.tu[0] + vCoord * b.tv[0] + HALF * b.n[0];
+        const cy = uCoord * b.tu[1] + vCoord * b.tv[1] + HALF * b.n[1];
+        const cz = uCoord * b.tu[2] + vCoord * b.tv[2] + HALF * b.n[2];
         const su = stretchDir ? (1.0 + Math.abs(stretchDir[0]) * 0.10) : 1.0;
         const sv = stretchDir ? (1.0 + Math.abs(stretchDir[1]) * 0.10) : 1.0;
-        data[ptr++] = C[0];
-        data[ptr++] = C[1];
-        data[ptr++] = C[2];
+
+        data[ptr++] = cx;
+        data[ptr++] = cy;
+        data[ptr++] = cz;
         data[ptr++] = b.tu[0] * su;
         data[ptr++] = b.tu[1] * su;
         data[ptr++] = b.tu[2] * su;
@@ -3597,7 +3607,6 @@
       }
 
       function writeTileAtProgress(data, ptr, t, p, alpha, scaleMult, isMotionBlur = false) {
-        let C, Tu, Tv, N;
         if (t.isMoving && t.targetFace !== t.fromFace) {
           // Clean 90-degree corner transition swiping across the outer face edge:
           const ease = t.wasContinuous
@@ -3615,121 +3624,126 @@
           const Ey = n1[2] * n2[0] - n1[0] * n2[2];
           const Ez = n1[0] * n2[1] - n1[1] * n2[0];
           const Elen = Math.hypot(Ex, Ey, Ez) || 1;
-          const E = [Ex / Elen, Ey / Elen, Ez / Elen];
+          const eX = Ex / Elen, eY = Ey / Elen, eZ = Ez / Elen;
 
           // 1. Normal rotates smoothly by 90 degrees around E
           const cosT = Math.cos(theta);
           const sinT = Math.sin(theta);
-          N = [
-            cosT * n1[0] + sinT * n2[0],
-            cosT * n1[1] + sinT * n2[1],
-            cosT * n1[2] + sinT * n2[2]
-          ];
+          nX = cosT * n1[0] + sinT * n2[0];
+          nY = cosT * n1[1] + sinT * n2[1];
+          nZ = cosT * n1[2] + sinT * n2[2];
 
           // 2. Rigid orientation of tile: rotate Tu and Tv around E with N
-          const n2Rot = [
-            cosT * n2[0] - sinT * n1[0],
-            cosT * n2[1] - sinT * n1[1],
-            cosT * n2[2] - sinT * n1[2]
-          ];
+          const n2RotX = cosT * n2[0] - sinT * n1[0];
+          const n2RotY = cosT * n2[1] - sinT * n1[1];
+          const n2RotZ = cosT * n2[2] - sinT * n1[2];
 
           const stretch = isMotionBlur ? 1.12 : 1.0;
           const tu1 = b1.tu;
-          const dotTu1E = tu1[0] * E[0] + tu1[1] * E[1] + tu1[2] * E[2];
+          const dotTu1E = tu1[0] * eX + tu1[1] * eY + tu1[2] * eZ;
           const dotTu1N2 = (tu1[0] * n2[0] + tu1[1] * n2[1] + tu1[2] * n2[2]) * stretch;
-          Tu = [
-            dotTu1E * E[0] + dotTu1N2 * n2Rot[0],
-            dotTu1E * E[1] + dotTu1N2 * n2Rot[1],
-            dotTu1E * E[2] + dotTu1N2 * n2Rot[2]
-          ];
+          tuX = dotTu1E * eX + dotTu1N2 * n2RotX;
+          tuY = dotTu1E * eY + dotTu1N2 * n2RotY;
+          tuZ = dotTu1E * eZ + dotTu1N2 * n2RotZ;
 
           const tv1 = b1.tv;
-          const dotTv1E = tv1[0] * E[0] + tv1[1] * E[1] + tv1[2] * E[2];
+          const dotTv1E = tv1[0] * eX + tv1[1] * eY + tv1[2] * eZ;
           const dotTv1N2 = (tv1[0] * n2[0] + tv1[1] * n2[1] + tv1[2] * n2[2]) * stretch;
-          Tv = [
-            dotTv1E * E[0] + dotTv1N2 * n2Rot[0],
-            dotTv1E * E[1] + dotTv1N2 * n2Rot[1],
-            dotTv1E * E[2] + dotTv1N2 * n2Rot[2]
-          ];
+          tvX = dotTv1E * eX + dotTv1N2 * n2RotX;
+          tvY = dotTv1E * eY + dotTv1N2 * n2RotY;
+          tvZ = dotTv1E * eZ + dotTv1N2 * n2RotZ;
 
-          const c1 = getCellCenter(t.fromFace, t.fromU, t.fromV);
-          const pEdge = [
-            c1[0] + 0.5 * step * n2[0],
-            c1[1] + 0.5 * step * n2[1],
-            c1[2] + 0.5 * step * n2[2]
-          ];
+          const uCoord1 = -HALF + (t.fromU + 0.5) * step;
+          const vCoord1 = -HALF + (t.fromV + 0.5) * step;
+          const c1X = uCoord1 * b1.tu[0] + vCoord1 * b1.tv[0] + HALF * b1.n[0];
+          const c1Y = uCoord1 * b1.tu[1] + vCoord1 * b1.tv[1] + HALF * b1.n[1];
+          const c1Z = uCoord1 * b1.tu[2] + vCoord1 * b1.tv[2] + HALF * b1.n[2];
+
+          const pEdgeX = c1X + 0.5 * step * n2[0];
+          const pEdgeY = c1Y + 0.5 * step * n2[1];
+          const pEdgeZ = c1Z + 0.5 * step * n2[2];
 
           if (ease <= 0.5) {
             const t1 = ease * 2.0;
-            C = [
-              c1[0] + t1 * 0.5 * step * n2[0],
-              c1[1] + t1 * 0.5 * step * n2[1],
-              c1[2] + t1 * 0.5 * step * n2[2]
-            ];
+            cX = c1X + t1 * 0.5 * step * n2[0];
+            cY = c1Y + t1 * 0.5 * step * n2[1];
+            cZ = c1Z + t1 * 0.5 * step * n2[2];
           } else {
             const t2 = (ease - 0.5) * 2.0;
-            C = [
-              pEdge[0] - t2 * 0.5 * step * n1[0],
-              pEdge[1] - t2 * 0.5 * step * n1[1],
-              pEdge[2] - t2 * 0.5 * step * n1[2]
-            ];
+            cX = pEdgeX - t2 * 0.5 * step * n1[0];
+            cY = pEdgeY - t2 * 0.5 * step * n1[1];
+            cZ = pEdgeZ - t2 * 0.5 * step * n1[2];
           }
 
           const cornerLift = Math.sin(ease * Math.PI) * 0.035;
-          C[0] += N[0] * cornerLift;
-          C[1] += N[1] * cornerLift;
-          C[2] += N[2] * cornerLift;
+          cX += nX * cornerLift;
+          cY += nY * cornerLift;
+          cZ += nZ * cornerLift;
         } else {
           // Smooth, continuous glide within same face
           const b = faceBases[t.face];
-          N = b.n;
+          nX = b.n[0]; nY = b.n[1]; nZ = b.n[2];
           if (t.isMoving) {
             const ease = t.wasContinuous
               ? (0.90 * p + 0.10 * (0.5 - 0.5 * Math.cos(p * Math.PI)))
               : (0.72 * p + 0.28 * (0.5 - 0.5 * Math.cos(p * Math.PI)));
-            const c1 = getCellCenter(t.face, t.fromU, t.fromV);
-            const c2 = getCellCenter(t.face, t.targetU, t.targetV);
-            C = [
-              (1.0 - ease) * c1[0] + ease * c2[0],
-              (1.0 - ease) * c1[1] + ease * c2[1],
-              (1.0 - ease) * c1[2] + ease * c2[2]
-            ];
+            const u1 = -HALF + (t.fromU + 0.5) * step;
+            const v1 = -HALF + (t.fromV + 0.5) * step;
+            const u2 = -HALF + (t.targetU + 0.5) * step;
+            const v2 = -HALF + (t.targetV + 0.5) * step;
+            const c1X = u1 * b.tu[0] + v1 * b.tv[0] + HALF * b.n[0];
+            const c1Y = u1 * b.tu[1] + v1 * b.tv[1] + HALF * b.n[1];
+            const c1Z = u1 * b.tu[2] + v1 * b.tv[2] + HALF * b.n[2];
+            const c2X = u2 * b.tu[0] + v2 * b.tv[0] + HALF * b.n[0];
+            const c2Y = u2 * b.tu[1] + v2 * b.tv[1] + HALF * b.n[1];
+            const c2Z = u2 * b.tu[2] + v2 * b.tv[2] + HALF * b.n[2];
+            cX = (1.0 - ease) * c1X + ease * c2X;
+            cY = (1.0 - ease) * c1Y + ease * c2Y;
+            cZ = (1.0 - ease) * c1Z + ease * c2Z;
+
             if (isMotionBlur) {
-              // Subtle longitudinal shutter overlap strictly along movement axis (zero lateral bloating!)
+              // Subtle longitudinal shutter overlap strictly along movement axis
               const moveU = Math.abs(t.targetU - t.fromU);
               const moveV = Math.abs(t.targetV - t.fromV);
               const su = 1.0 + moveU * 0.14;
               const sv = 1.0 + moveV * 0.14;
-              Tu = [b.tu[0] * su, b.tu[1] * su, b.tu[2] * su];
-              Tv = [b.tv[0] * sv, b.tv[1] * sv, b.tv[2] * sv];
+              tuX = b.tu[0] * su; tuY = b.tu[1] * su; tuZ = b.tu[2] * su;
+              tvX = b.tv[0] * sv; tvY = b.tv[1] * sv; tvZ = b.tv[2] * sv;
             } else {
-              Tu = b.tu;
-              Tv = b.tv;
+              tuX = b.tu[0]; tuY = b.tu[1]; tuZ = b.tu[2];
+              tvX = b.tv[0]; tvY = b.tv[1]; tvZ = b.tv[2];
             }
           } else {
-            Tu = b.tu;
-            Tv = b.tv;
-            C = getCellCenter(t.face, t.u, t.v);
+            tuX = b.tu[0]; tuY = b.tu[1]; tuZ = b.tu[2];
+            tvX = b.tv[0]; tvY = b.tv[1]; tvZ = b.tv[2];
+            const uCoord = -HALF + (t.u + 0.5) * step;
+            const vCoord = -HALF + (t.v + 0.5) * step;
+            cX = uCoord * b.tu[0] + vCoord * b.tv[0] + HALF * b.n[0];
+            cY = uCoord * b.tu[1] + vCoord * b.tv[1] + HALF * b.n[1];
+            cZ = uCoord * b.tu[2] + vCoord * b.tv[2] + HALF * b.n[2];
           }
         }
-        if (!isMotionBlur && alpha >= 0.99) t.currentPos = C;
+        if (!isMotionBlur && alpha >= 0.99) {
+          if (!t.currentPos) t.currentPos = [cX, cY, cZ];
+          else { t.currentPos[0] = cX; t.currentPos[1] = cY; t.currentPos[2] = cZ; }
+        }
 
         const col = t.color;
         const baseScale = Math.max(0.01, t.scale !== undefined ? t.scale : 1.0);
         const signedScale = (isMotionBlur ? -1.0 : 1.0) * baseScale * scaleMult;
 
-        data[ptr++] = C[0];
-        data[ptr++] = C[1];
-        data[ptr++] = C[2];
-        data[ptr++] = Tu[0];
-        data[ptr++] = Tu[1];
-        data[ptr++] = Tu[2];
-        data[ptr++] = Tv[0];
-        data[ptr++] = Tv[1];
-        data[ptr++] = Tv[2];
-        data[ptr++] = N[0];
-        data[ptr++] = N[1];
-        data[ptr++] = N[2];
+        data[ptr++] = cX;
+        data[ptr++] = cY;
+        data[ptr++] = cZ;
+        data[ptr++] = tuX;
+        data[ptr++] = tuY;
+        data[ptr++] = tuZ;
+        data[ptr++] = tvX;
+        data[ptr++] = tvY;
+        data[ptr++] = tvZ;
+        data[ptr++] = nX;
+        data[ptr++] = nY;
+        data[ptr++] = nZ;
         data[ptr++] = col[0];
         data[ptr++] = col[1];
         data[ptr++] = col[2];
@@ -3758,81 +3772,41 @@
         frontInstanceCount = 0;
         const numTiles = tiles.length;
 
-        // Pass A: Natural tapering surface wake & multi-sample shutter motion blur (rendered with depthMask = false)
+        // Pass A: High-performance surface wake & single-slice optical shutter blur (rendered with depthMask = false)
+        // Streamlined to eliminate mobile fill-rate overdraw while preserving silky motion blur
         for (let i = 0; i < numTiles; i++) {
           const t = tiles[i];
           if (!t || t.isDying) continue;
 
-          // 1. Tapering fading trail wake (n-3, n-2, n-1 + midpoint bridge)
-          if (t.trail3Alpha > 0.015 && t.trail3Face !== undefined && t.trail3Face >= 0) {
-            const sc3 = 0.28 + Math.min(1.0, t.trail3Alpha / 0.20) * 0.24;
-            if (faceNz[t.trail3Face] > 0.0) {
-              frontTrailPtr = writeGhostInstance(frontTrailData, frontTrailPtr, t.trail3Face, t.trail3U, t.trail3V, t.color, t.trail3Alpha * 0.55, sc3, t.dir);
+          // 1. Sleek trailing footprint (fading n-1 cell)
+          if (t.trailAlpha > 0.02 && t.trailFace !== undefined && t.trailFace >= 0) {
+            const sc1 = 0.45 + Math.min(1.0, t.trailAlpha / 0.25) * 0.35;
+            if (faceNz[t.trailFace] > 0.0) {
+              frontTrailPtr = writeGhostInstance(frontTrailData, frontTrailPtr, t.trailFace, t.trailU, t.trailV, t.color, t.trailAlpha * 0.75, sc1, t.dir);
               frontTrailCount++;
             } else {
-              backTrailPtr = writeGhostInstance(backTrailData, backTrailPtr, t.trail3Face, t.trail3U, t.trail3V, t.color, t.trail3Alpha * 0.55, sc3, t.dir);
+              backTrailPtr = writeGhostInstance(backTrailData, backTrailPtr, t.trailFace, t.trailU, t.trailV, t.color, t.trailAlpha * 0.75, sc1, t.dir);
               backTrailCount++;
             }
           }
 
-          if (t.trail2Alpha > 0.015 && t.trail2Face !== undefined && t.trail2Face >= 0) {
-            const sc2 = 0.36 + Math.min(1.0, t.trail2Alpha / 0.22) * 0.28;
-            if (faceNz[t.trail2Face] > 0.0) {
-              frontTrailPtr = writeGhostInstance(frontTrailData, frontTrailPtr, t.trail2Face, t.trail2U, t.trail2V, t.color, t.trail2Alpha * 0.68, sc2, t.dir);
-              frontTrailCount++;
-            } else {
-              backTrailPtr = writeGhostInstance(backTrailData, backTrailPtr, t.trail2Face, t.trail2U, t.trail2V, t.color, t.trail2Alpha * 0.68, sc2, t.dir);
-              backTrailCount++;
-            }
-          }
-
-          if (t.trailAlpha > 0.015 && t.trailFace !== undefined && t.trailFace >= 0) {
-            const sc1 = 0.44 + Math.min(1.0, t.trailAlpha / 0.24) * 0.32;
-            const isFront1 = faceNz[t.trailFace] > 0.0;
-            if (isFront1) {
-              frontTrailPtr = writeGhostInstance(frontTrailData, frontTrailPtr, t.trailFace, t.trailU, t.trailV, t.color, t.trailAlpha * 0.78, sc1, t.dir);
-              frontTrailCount++;
-            } else {
-              backTrailPtr = writeGhostInstance(backTrailData, backTrailPtr, t.trailFace, t.trailU, t.trailV, t.color, t.trailAlpha * 0.78, sc1, t.dir);
-              backTrailCount++;
-            }
-            // Midpoint bridge between (n-1) and current origin cell so the wake is a continuous ribbon
-            if (t.trailNextFace === t.trailFace) {
-              const midU = (t.trailU + t.trailNextU) * 0.5;
-              const midV = (t.trailV + t.trailNextV) * 0.5;
-              const scMid = sc1 * 0.92;
-              if (isFront1) {
-                frontTrailPtr = writeGhostInstance(frontTrailData, frontTrailPtr, t.trailFace, midU, midV, t.color, t.trailAlpha * 0.65, scMid, t.dir);
-                frontTrailCount++;
-              } else {
-                backTrailPtr = writeGhostInstance(backTrailData, backTrailPtr, t.trailFace, midU, midV, t.color, t.trailAlpha * 0.65, scMid, t.dir);
-                backTrailCount++;
-              }
-            }
-          }
-
-          // 2. Tight 4-sample optical camera-shutter motion blur directly behind moving tiles
-          if (t.isMoving && t.progress > 0.02) {
+          // 2. High-performance shutter motion blur: 1 optical elongated slice directly behind moving tile (replaces 4 overlapping stamps)
+          if (t.isMoving && t.progress > 0.04) {
             const speedNorm = Math.min(1.35, Math.max(0.45, (t.moveSpeed || 1.5) * 0.45));
-            const shutterSpan = 0.24 * speedNorm;
             let nz = faceNz[t.face];
             if (t.targetFace !== t.fromFace) {
               const theta = t.progress * Math.PI * 0.5;
               nz = Math.cos(theta) * faceNz[t.fromFace] + Math.sin(theta) * faceNz[t.targetFace];
             }
-            const isFront = nz > 0.0;
-            for (let s = 4; s >= 1; s--) {
-              const frac = s * 0.25; // 1.0, 0.75, 0.50, 0.25
-              const pSample = Math.max(0.0, t.progress - frac * shutterSpan);
-              const sampleAlpha = (0.18 * (1.15 - frac * 0.78)) * Math.min(1.0, speedNorm);
-              const sampleScale = 0.96 - frac * 0.14;
-              if (isFront) {
-                frontTrailPtr = writeTileAtProgress(frontTrailData, frontTrailPtr, t, pSample, sampleAlpha, sampleScale, true);
-                frontTrailCount++;
-              } else {
-                backTrailPtr = writeTileAtProgress(backTrailData, backTrailPtr, t, pSample, sampleAlpha, sampleScale, true);
-                backTrailCount++;
-              }
+            const pSample = Math.max(0.0, t.progress - 0.12 * speedNorm);
+            const sampleAlpha = 0.22 * Math.min(1.0, speedNorm);
+            const sampleScale = 0.94;
+            if (nz > 0.0) {
+              frontTrailPtr = writeTileAtProgress(frontTrailData, frontTrailPtr, t, pSample, sampleAlpha, sampleScale, true);
+              frontTrailCount++;
+            } else {
+              backTrailPtr = writeTileAtProgress(backTrailData, backTrailPtr, t, pSample, sampleAlpha, sampleScale, true);
+              backTrailCount++;
             }
           }
         }
@@ -3908,7 +3882,9 @@
       }
 
       function resize() {
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        // Cap DPR to 1.5 on mobile to eliminate GPU fragment shader bottleneck & save fill-rate/battery
+        const maxDpr = (window.innerWidth <= 640) ? 1.5 : 2.0;
+        const dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
         const w = Math.round(window.innerWidth * dpr);
         const h = Math.round(window.innerHeight * dpr);
         if (canvas.width !== w || canvas.height !== h) {
