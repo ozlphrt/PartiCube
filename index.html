@@ -68,74 +68,157 @@
       color: #94a3b8;
       text-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
     }
-    /* Preset Status & Auto-Cycle HUD */
-    #preset-hud {
+    /* Preset Status & Auto-Cycle Dial (Circular Progress Gauge) */
+    #preset-hud.preset-dial {
       position: fixed;
       top: 14px;
       left: 16px;
-      z-index: 20;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      background: rgba(255, 255, 255, 0.90);
+      z-index: 25;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.92);
       border: 1px solid rgba(0, 0, 0, 0.14);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-radius: 9px;
-      padding: 8px 12px;
-      min-width: 170px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
-      color: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
       user-select: none;
-      pointer-events: auto;
-      transition: all 0.25s ease;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, background 0.25s, border-color 0.25s;
     }
-    body.dark-theme #preset-hud {
-      background: rgba(15, 23, 42, 0.88);
-      border: 1px solid rgba(255, 255, 255, 0.16);
+    #preset-hud.preset-dial:hover {
+      transform: scale(1.08);
+      box-shadow: 0 8px 24px rgba(2, 132, 199, 0.28);
+    }
+    #preset-hud.preset-dial:active {
+      transform: scale(0.95);
+    }
+    body.dark-theme #preset-hud.preset-dial {
+      background: rgba(15, 23, 42, 0.90);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+    }
+    body.dark-theme #preset-hud.preset-dial:hover {
+      box-shadow: 0 8px 28px rgba(56, 189, 248, 0.40);
+    }
+    .preset-dial-svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+      pointer-events: none;
+    }
+    .preset-dial-track {
+      fill: none;
+      stroke: rgba(0, 0, 0, 0.08);
+      stroke-width: 3.5;
+    }
+    body.dark-theme .preset-dial-track {
+      stroke: rgba(255, 255, 255, 0.12);
+    }
+    .preset-dial-progress {
+      fill: none;
+      stroke: #0284c7;
+      stroke-width: 3.5;
+      stroke-linecap: round;
+      stroke-dasharray: 138.23;
+      stroke-dashoffset: 138.23;
+      transition: stroke-dashoffset 0.18s ease, stroke 0.25s ease;
+    }
+    body.dark-theme .preset-dial-progress {
+      stroke: #38bdf8;
+    }
+    .preset-dial-content {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      pointer-events: none;
+      line-height: 1.1;
+    }
+    .preset-dial-content .preset-hud-name {
+      font-size: 7.5px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: #0284c7;
+      max-width: 44px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    body.dark-theme .preset-dial-content .preset-hud-name {
+      color: #38bdf8;
+    }
+    .preset-dial-content .preset-hud-pct {
+      font-size: 11px;
+      font-weight: 700;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: #16a34a;
+    }
+    body.dark-theme .preset-dial-content .preset-hud-pct {
+      color: #4ade80;
+    }
+
+    /* Preset Quick-Change Popover */
+    .preset-popover {
+      position: fixed;
+      top: 76px;
+      left: 16px;
+      z-index: 30;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(0, 0, 0, 0.14);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-radius: 12px;
+      padding: 10px 12px;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.16);
+      width: 220px;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
+      animation: popoverFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .preset-popover.open {
+      display: flex;
+    }
+    body.dark-theme .preset-popover {
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65);
       color: #f8fafc;
-      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.50);
     }
-    .preset-hud-top {
+    @keyframes popoverFadeIn {
+      from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1.0); }
+    }
+    .preset-popover-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 5px;
-    }
-    .preset-hud-name {
-      font-size: 13px;
+      font-size: 9.5px;
       font-weight: 700;
-      letter-spacing: 0.03em;
-      color: #0284c7;
+      letter-spacing: 0.05em;
+      color: #64748b;
     }
-    body.dark-theme .preset-hud-name {
-      color: #38bdf8;
+    body.dark-theme .preset-popover-header {
+      color: #94a3b8;
     }
-    .preset-hud-pct {
-      font-size: 12px;
-      font-weight: 700;
-      font-variant-numeric: tabular-nums;
-      color: #16a34a;
+    .preset-popover-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
     }
-    body.dark-theme .preset-hud-pct {
-      color: #4ade80;
-    }
-    .preset-hud-bar-bg {
-      width: 100%;
-      height: 5px;
-      background: rgba(0, 0, 0, 0.08);
-      border-radius: 999px;
-      overflow: hidden;
-    }
-    body.dark-theme .preset-hud-bar-bg {
-      background: rgba(255, 255, 255, 0.12);
-    }
-    .preset-hud-bar-fill {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #38bdf8, #4ade80);
-      border-radius: 999px;
-      transition: width 0.2s ease;
+    .preset-popover-grid .preset-btn {
+      padding: 4px 6px;
+      font-size: 10.5px;
     }
     #preset-toast {
       position: fixed;
@@ -739,21 +822,23 @@
 
     /* Mobile Responsive Optimizations */
     @media (max-width: 640px) {
-      #preset-hud {
+      #preset-hud.preset-dial {
         top: 10px;
         left: 10px;
-        min-width: 105px;
-        max-width: 140px;
-        padding: 5px 8px;
+        width: 48px;
+        height: 48px;
       }
-      .preset-hud-name {
-        font-size: 11px;
+      .preset-dial-content .preset-hud-name {
+        font-size: 7px;
+        max-width: 38px;
       }
-      .preset-hud-pct {
+      .preset-dial-content .preset-hud-pct {
         font-size: 10px;
       }
-      .preset-hud-bar-bg {
-        height: 3.5px;
+      .preset-popover {
+        top: 64px;
+        left: 10px;
+        width: 205px;
       }
       #preset-toast {
         top: 48px;
@@ -804,13 +889,34 @@
   </style>
 </head>
 <body>
-  <div id="preset-hud" title="Active preset & goal progress (Auto-cycles to next preset upon reaching 100% completion)">
-    <div class="preset-hud-top">
+  <div id="preset-hud" class="preset-dial" title="Preset Progress Dial (Click to change preset anytime)">
+    <svg class="preset-dial-svg" viewBox="0 0 56 56">
+      <circle class="preset-dial-track" cx="28" cy="28" r="22" />
+      <circle class="preset-dial-progress" id="preset-dial-ring" cx="28" cy="28" r="22" />
+    </svg>
+    <div class="preset-dial-content">
       <span class="preset-hud-name" id="preset-hud-name">TRIBES</span>
       <span class="preset-hud-pct" id="preset-hud-pct">0%</span>
     </div>
-    <div class="preset-hud-bar-bg">
-      <div class="preset-hud-bar-fill" id="preset-hud-bar"></div>
+  </div>
+
+  <!-- Quick-Change Preset Popover -->
+  <div id="preset-popover" class="preset-popover">
+    <div class="preset-popover-header">
+      <span>SELECT PRESET</span>
+      <button id="preset-popover-next-btn" class="mini-btn" title="Cycle to next preset">Next ❯</button>
+    </div>
+    <div class="preset-popover-grid">
+      <button class="preset-btn active" data-preset="tribes">Tribes</button>
+      <button class="preset-btn" data-preset="chase">Chase</button>
+      <button class="preset-btn" data-preset="predator">Predator</button>
+      <button class="preset-btn" data-preset="symbiosis">Symbiosis</button>
+      <button class="preset-btn" data-preset="vortex">Vortex</button>
+      <button class="preset-btn" data-preset="alliances">Alliances</button>
+      <button class="preset-btn" data-preset="swarm">Swarm</button>
+      <button class="preset-btn" data-preset="chaos">Chaos</button>
+      <button class="preset-btn" data-preset="random">Random</button>
+      <button class="preset-btn" data-preset="zero">Neutral</button>
     </div>
   </div>
   <div id="preset-toast"></div>
@@ -2622,10 +2728,14 @@
       let presetTimeInMode = 0.0;
       let toastTimeout = null;
 
+      const presetHudEl = document.getElementById('preset-hud');
       const presetHudNameEl = document.getElementById('preset-hud-name');
       const presetHudPctEl = document.getElementById('preset-hud-pct');
-      const presetHudBarEl = document.getElementById('preset-hud-bar');
+      const presetDialRingEl = document.getElementById('preset-dial-ring');
+      const presetPopoverEl = document.getElementById('preset-popover');
+      const presetPopoverNextBtn = document.getElementById('preset-popover-next-btn');
       const presetToastEl = document.getElementById('preset-toast');
+      const DIAL_CIRCUMFERENCE = 138.23; // 2 * Math.PI * 22
 
       function showPresetToast(label) {
         if (!presetToastEl) return;
@@ -2641,7 +2751,7 @@
         currentPresetKey = presetKey;
         presetSuccessSmoothed = 0.0;
         presetTimeInMode = 0.0;
-        document.querySelectorAll('.preset-row .preset-btn').forEach(b => {
+        document.querySelectorAll('.preset-row .preset-btn, .preset-popover-grid .preset-btn').forEach(b => {
           if (presetKey && b.getAttribute('data-preset') === presetKey) {
             b.classList.add('active');
           } else {
@@ -2651,8 +2761,33 @@
         const label = presetKey ? (PRESET_LABELS[presetKey] || presetKey.toUpperCase()) : 'CUSTOM';
         if (presetHudNameEl) presetHudNameEl.textContent = label;
         if (presetHudPctEl) presetHudPctEl.textContent = '0%';
-        if (presetHudBarEl) presetHudBarEl.style.width = '0%';
+        if (presetDialRingEl) presetDialRingEl.style.strokeDashoffset = `${DIAL_CIRCUMFERENCE}px`;
         if (showNotification) showPresetToast(label);
+      }
+
+      function triggerPresetChange(key, showToast = true) {
+        setActivePreset(key, showToast);
+        if (key === 'random') {
+          const randMat = [];
+          for (let r = 0; r < 4; r++) {
+            randMat[r] = [];
+            for (let c = 0; c < 4; c++) {
+              const val = (Math.random() * 2 - 1);
+              randMat[r][c] = Math.round(val * 10) / 10;
+              if (Math.abs(randMat[r][c]) > 0.45) randMat[r][c] = randMat[r][c] > 0 ? 1.0 : -1.0;
+            }
+          }
+          applyMatrixPreset(randMat);
+        } else if (presets[key]) {
+          applyMatrixPreset(presets[key]);
+        }
+      }
+
+      function cycleNextPreset() {
+        const curIdx = PRESET_CYCLE_ORDER.indexOf(currentPresetKey);
+        const nextIdx = (curIdx + 1) % PRESET_CYCLE_ORDER.length;
+        const nextKey = PRESET_CYCLE_ORDER[nextIdx];
+        triggerPresetChange(nextKey, true);
       }
 
       function updatePresetProgress(dt) {
@@ -2712,36 +2847,55 @@
 
         const dispPct = Math.min(100, Math.round(presetSuccessSmoothed));
         if (presetHudPctEl) presetHudPctEl.textContent = `${dispPct}%`;
-        if (presetHudBarEl) presetHudBarEl.style.width = `${dispPct}%`;
+        if (presetDialRingEl) {
+          const offset = DIAL_CIRCUMFERENCE * (1.0 - dispPct / 100.0);
+          presetDialRingEl.style.strokeDashoffset = `${offset}px`;
+        }
 
         // Wait until 100% completion (and at least 32s in the preset) before cycling to the next preset
         if (dispPct >= 100 && presetTimeInMode >= 32.0) {
-          const curIdx = PRESET_CYCLE_ORDER.indexOf(currentPresetKey);
-          const nextIdx = (curIdx + 1) % PRESET_CYCLE_ORDER.length;
-          const nextKey = PRESET_CYCLE_ORDER[nextIdx];
-          setActivePreset(nextKey, true);
-          applyMatrixPreset(presets[nextKey]);
+          cycleNextPreset();
         }
       }
 
-      document.querySelectorAll('.preset-row button[data-preset]').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const key = btn.getAttribute('data-preset');
-          setActivePreset(key, true);
-          if (key === 'random') {
-            const randMat = [];
-            for (let r = 0; r < 4; r++) {
-              randMat[r] = [];
-              for (let c = 0; c < 4; c++) {
-                const val = (Math.random() * 2 - 1);
-                randMat[r][c] = Math.round(val * 10) / 10;
-                if (Math.abs(randMat[r][c]) > 0.45) randMat[r][c] = randMat[r][c] > 0 ? 1.0 : -1.0;
-              }
-            }
-            applyMatrixPreset(randMat);
-          } else if (presets[key]) {
-            applyMatrixPreset(presets[key]);
+      // Interactive Preset Dial & Popover Controls
+      if (presetHudEl && presetPopoverEl) {
+        presetHudEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          presetPopoverEl.classList.toggle('open');
+        });
+
+        presetPopoverEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+        });
+
+        if (presetPopoverNextBtn) {
+          presetPopoverNextBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            cycleNextPreset();
+          });
+        }
+
+        document.querySelectorAll('.preset-popover-grid button[data-preset]').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const key = btn.getAttribute('data-preset');
+            triggerPresetChange(key, true);
+            presetPopoverEl.classList.remove('open');
+          });
+        });
+
+        document.addEventListener('click', (e) => {
+          if (!presetPopoverEl.contains(e.target) && !presetHudEl.contains(e.target)) {
+            presetPopoverEl.classList.remove('open');
           }
+        });
+      }
+
+      document.querySelectorAll('.preset-row button[data-preset]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const key = btn.getAttribute('data-preset');
+          triggerPresetChange(key, true);
         });
       });
       setActivePreset('tribes', false);
@@ -3722,10 +3876,67 @@
         return ptr;
       }
 
+      // Convoy and Multi-Tile Straight Line Easing:
+      // When 2+ tiles move in a straight line (e.g. 5 tiles):
+      // - 1st tile (head): Ease-Out into destination
+      // - 5th/last tile (tail): Ease-In from departure
+      // - Interior tiles (2, 3, 4): Linear cruise velocity for seamless laminar flow
+      // - Standalone single-tile move: Full harmonic Ease-In / Ease-Out
+      function getTileEase(t, p) {
+        if (!t || !t.isMoving) return p;
+
+        const du = t.dir ? t.dir[0] : 0;
+        const dv = t.dir ? t.dir[1] : 0;
+        let hasLeaderAhead = false;
+        let hasFollowerBehind = false;
+
+        if ((du !== 0 || dv !== 0) && faceGrids[t.face]) {
+          const fGrid = faceGrids[t.face];
+          const aheadU = t.targetU + du;
+          const aheadV = t.targetV + dv;
+          if (aheadU >= 0 && aheadU < subdivisions && aheadV >= 0 && aheadV < subdivisions) {
+            const aheadId = fGrid[aheadU][aheadV];
+            if (aheadId !== -1 && aheadId !== t.id) {
+              const aheadTile = tileById.get(aheadId);
+              if (aheadTile && aheadTile.isMoving && aheadTile.dir && aheadTile.dir[0] === du && aheadTile.dir[1] === dv) {
+                hasLeaderAhead = true;
+              }
+            }
+          }
+
+          const behindU = t.fromU - du;
+          const behindV = t.fromV - dv;
+          if (behindU >= 0 && behindU < subdivisions && behindV >= 0 && behindV < subdivisions) {
+            const behindId = fGrid[behindU][behindV];
+            if (behindId !== -1 && behindId !== t.id) {
+              const behindTile = tileById.get(behindId);
+              if (behindTile && behindTile.isMoving && behindTile.dir && behindTile.dir[0] === du && behindTile.dir[1] === dv) {
+                hasFollowerBehind = true;
+              }
+            }
+          }
+        }
+
+        // 1st tile at head of convoy: Ease-Out into destination
+        if (!hasLeaderAhead && hasFollowerBehind) {
+          return -p * p * p + p * p + p;
+        }
+        // Last tile at tail of convoy: Ease-In from departure
+        if (hasLeaderAhead && !hasFollowerBehind) {
+          return p * p * (2.0 - p);
+        }
+        // Interior tiles in line: Constant cruise velocity
+        if (hasLeaderAhead && hasFollowerBehind) {
+          return p;
+        }
+
+        // Standalone isolated move: Harmonic S-curve (both Ease-In and Ease-Out)
+        return 0.5 - 0.5 * Math.cos(p * Math.PI);
+      }
+
       function writeTileAtProgress(data, ptr, t, p, alpha, scaleMult, isMotionBlur = false) {
         if (t.isMoving && t.targetFace !== t.fromFace) {
-          // Harmonic physical ease-in and ease-out S-curve for cushioned corner transition
-          const ease = 0.5 - 0.5 * Math.cos(p * Math.PI);
+          const ease = getTileEase(t, p);
           const theta = ease * Math.PI * 0.5;
 
           const b1 = faceBases[t.fromFace];
@@ -3798,8 +4009,7 @@
           const b = faceBases[t.face];
           nX = b.n[0]; nY = b.n[1]; nZ = b.n[2];
           if (t.isMoving) {
-            // Harmonic physical ease-in and ease-out S-curve (zero abrupt start, zero abrupt halt)
-            const ease = 0.5 - 0.5 * Math.cos(p * Math.PI);
+            const ease = getTileEase(t, p);
             const u1 = -HALF + (t.fromU + 0.5) * step;
             const v1 = -HALF + (t.fromV + 0.5) * step;
             const u2 = -HALF + (t.targetU + 0.5) * step;
@@ -3908,7 +4118,7 @@
             const speedNorm = Math.min(1.35, Math.max(0.45, (t.moveSpeed || 1.5) * 0.45));
             let nz = faceNz[t.face];
             if (t.targetFace !== t.fromFace) {
-              const easeProgress = 0.5 - 0.5 * Math.cos(t.progress * Math.PI);
+              const easeProgress = getTileEase(t, t.progress);
               const theta = easeProgress * Math.PI * 0.5;
               nz = Math.cos(theta) * faceNz[t.fromFace] + Math.sin(theta) * faceNz[t.targetFace];
             }
@@ -3931,7 +4141,7 @@
           if (!t) continue;
           let nz = faceNz[t.face];
           if (t.isMoving && t.targetFace !== t.fromFace) {
-            const ease = 0.5 - 0.5 * Math.cos(t.progress * Math.PI);
+            const ease = getTileEase(t, t.progress);
             const theta = ease * Math.PI * 0.5;
             nz = Math.cos(theta) * faceNz[t.fromFace] + Math.sin(theta) * faceNz[t.targetFace];
           }
