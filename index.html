@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>PartiCube</title>
   <meta name="description" content="PartiCube: Real-time 3D multi-species particle cellular automata on a glass cube in WebGL.">
   <meta property="og:title" content="PartiCube">
@@ -68,94 +68,156 @@
       color: #94a3b8;
       text-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
     }
-    /* Circular-Only Population Widget (Prominent, Zero text/numbers on face) */
-    .circular-widget {
-      width: 58px;
-      height: 58px;
-      border-radius: 50%;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      background: conic-gradient(#ef4444 0% 25%, #22c55e 25% 50%, #eab308 50% 75%, #3b82f6 75% 100%);
-      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
-      border: 2px solid rgba(255, 255, 255, 0.25);
-      cursor: pointer;
+    /* Preset Status & Auto-Cycle HUD */
+    #preset-hud {
+      position: fixed;
+      top: 14px;
+      left: 16px;
+      z-index: 20;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background: rgba(255, 255, 255, 0.90);
+      border: 1px solid rgba(0, 0, 0, 0.14);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 9px;
+      padding: 8px 12px;
+      min-width: 170px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+      color: #0f172a;
+      user-select: none;
       pointer-events: auto;
-      transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease;
+      transition: all 0.25s ease;
     }
-    body:not(.dark-theme) .circular-widget {
-      border: 2px solid rgba(0, 0, 0, 0.14);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    body.dark-theme #preset-hud {
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: #f8fafc;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.50);
     }
-    .circular-widget:hover {
-      transform: scale(1.08);
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
-    }
-    .donut-core {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: #0f172a;
+    .preset-hud-top {
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      justify-content: center;
-      box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.75);
-      transition: background 0.25s ease;
+      gap: 10px;
+      margin-bottom: 5px;
     }
-    body:not(.dark-theme) .donut-core {
-      background: #ffffff;
-      box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+    .preset-hud-name {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      color: #0284c7;
     }
-    .donut-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #38bdf8;
-      box-shadow: 0 0 8px #38bdf8;
-      transition: background 0.3s ease, box-shadow 0.3s ease;
+    body.dark-theme .preset-hud-name {
+      color: #38bdf8;
     }
-    .donut-dot.growing {
-      background: #4ade80;
-      box-shadow: 0 0 10px #4ade80;
+    .preset-hud-pct {
+      font-size: 12px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: #16a34a;
     }
-    .donut-dot.declining {
-      background: #f87171;
-      box-shadow: 0 0 10px #f87171;
+    body.dark-theme .preset-hud-pct {
+      color: #4ade80;
+    }
+    .preset-hud-bar-bg {
+      width: 100%;
+      height: 5px;
+      background: rgba(0, 0, 0, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    body.dark-theme .preset-hud-bar-bg {
+      background: rgba(255, 255, 255, 0.12);
+    }
+    .preset-hud-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #38bdf8, #4ade80);
+      border-radius: 999px;
+      transition: width 0.2s ease;
+    }
+    #preset-toast {
+      position: fixed;
+      top: 64px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-10px);
+      z-index: 35;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 8px 18px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.92);
+      color: #f8fafc;
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 16px rgba(56, 189, 248, 0.3);
+      pointer-events: none;
+      user-select: none;
+      opacity: 0;
+      transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #preset-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
     }
     #matrix-panel {
       position: fixed;
       top: 14px;
       right: 16px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 11px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      font-size: 12px;
       color: #0f172a;
-      background: rgba(255, 255, 255, 0.90);
-      border: 1px solid rgba(0, 0, 0, 0.12);
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(0, 0, 0, 0.14);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       border-radius: 10px;
       padding: 10px 12px;
       z-index: 20;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.10);
-      width: 204px;
+      width: 252px;
       box-sizing: border-box;
       user-select: none;
-      transition: background 0.25s, border-color 0.25s, color 0.25s, box-shadow 0.25s;
+      transition: background 0.25s, border-color 0.25s, color 0.25s, box-shadow 0.25s, width 0.30s cubic-bezier(0.16, 1, 0.3, 1), padding 0.30s cubic-bezier(0.16, 1, 0.3, 1), top 0.30s cubic-bezier(0.16, 1, 0.3, 1);
     }
     #matrix-panel.collapsed {
       width: auto;
-      min-width: 204px;
-      padding: 7px 11px;
+      min-width: 0;
+      padding: 5px 8px;
     }
     #matrix-panel.collapsed .panel-header {
       margin-bottom: 0;
+      justify-content: flex-end;
+    }
+    #matrix-panel.collapsed .panel-title {
+      display: none;
+    }
+    #matrix-body {
+      max-height: 850px;
+      opacity: 1;
+      overflow: hidden;
+      transform: translateY(0);
+      transform-origin: top center;
+      transition: max-height 0.36s cubic-bezier(0.16, 1, 0.3, 1),
+                  opacity 0.25s ease,
+                  transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #matrix-panel.collapsed #matrix-body {
+      max-height: 0;
+      max-width: 0;
+      width: 0;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-8px) scaleY(0.96);
+      pointer-events: none;
     }
     body.dark-theme #matrix-panel {
-      color: #e2e8f0;
-      background: rgba(15, 23, 42, 0.88);
-      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: #f1f5f9;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.18);
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
     }
     .panel-header {
@@ -163,11 +225,12 @@
       justify-content: space-between;
       align-items: center;
       gap: 6px;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
+      cursor: pointer;
     }
     .panel-title {
       font-weight: 700;
-      font-size: 10px;
+      font-size: 12px;
       letter-spacing: 0.04em;
       white-space: nowrap;
       flex-shrink: 0;
@@ -179,26 +242,64 @@
     .mini-btn {
       background: rgba(0, 0, 0, 0.05);
       border: 1px solid rgba(0, 0, 0, 0.14);
-      color: #475569;
-      border-radius: 4px;
-      font-size: 9px;
-      padding: 1px 5px;
+      color: #1e293b;
+      border-radius: 5px;
+      font-size: 11.5px;
+      font-weight: 500;
+      line-height: 1.1;
+      padding: 3px 6px;
+      min-height: 23px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
       font-family: inherit;
-      transition: all 0.15s;
+      transition: all 0.15s ease;
     }
     .mini-btn:hover {
       background: rgba(0, 0, 0, 0.10);
       color: #0f172a;
+      transform: translateY(-1px);
     }
     body.dark-theme .mini-btn {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.10);
+      border: 1px solid rgba(255, 255, 255, 0.20);
+      color: #e2e8f0;
     }
     body.dark-theme .mini-btn:hover {
       background: rgba(255, 255, 255, 0.22);
       color: #fff;
+      transform: translateY(-1px);
+    }
+    .mini-btn.pinned {
+      background: rgba(22, 163, 74, 0.16);
+      border-color: #16a34a;
+      color: #15803d;
+      font-weight: 700;
+    }
+    body.dark-theme .mini-btn.pinned {
+      background: rgba(34, 197, 94, 0.22);
+      border-color: #22c55e;
+      color: #4ade80;
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.35);
+      font-weight: 700;
+    }
+    #pin-btn {
+      gap: 3px;
+      font-size: 9px;
+      padding: 2.5px 5px;
+    }
+    #pin-btn:not(.pinned) {
+      opacity: 0.72;
+    }
+    #pin-btn .pin-icon {
+      display: inline-block;
+      font-size: 10px;
+      transition: transform 0.2s ease, filter 0.2s ease;
+    }
+    #pin-btn:not(.pinned) .pin-icon {
+      transform: rotate(45deg);
+      filter: grayscale(100%);
     }
     .matrix-legend {
       display: flex;
@@ -320,8 +421,12 @@
       background: rgba(255, 255, 255, 0.18);
       color: #fff;
     }
-    .collapsed #matrix-body {
-      display: none;
+
+    .color-palette-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+      margin-bottom: 5px;
     }
 
     /* Ultra-Modern Glassmorphic Slider */
@@ -500,17 +605,19 @@
       pointer-events: auto;
     }
     .info-modal-content {
-      background: rgba(255, 255, 255, 0.96);
+      background: rgba(255, 255, 255, 0.98);
       color: #0f172a;
       border: 1px solid rgba(0, 0, 0, 0.16);
-      border-radius: 12px;
-      width: 90%;
-      max-width: 420px;
-      max-height: 85vh;
+      border-radius: 14px;
+      width: 92%;
+      max-width: 500px;
+      max-height: 88vh;
       display: flex;
       flex-direction: column;
       box-shadow: 0 24px 50px rgba(0, 0, 0, 0.28);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
       overflow: hidden;
       transform: scale(0.96) translateY(8px);
       transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
@@ -519,28 +626,28 @@
       transform: scale(1.0) translateY(0);
     }
     body.dark-theme .info-modal-content {
-      background: rgba(15, 23, 42, 0.95);
-      color: #e2e8f0;
-      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(15, 23, 42, 0.97);
+      color: #f8fafc;
+      border: 1px solid rgba(255, 255, 255, 0.20);
       box-shadow: 0 24px 50px rgba(0, 0, 0, 0.75);
     }
     .info-modal-header {
-      padding: 11px 16px;
+      padding: 14px 18px;
       border-bottom: 1px solid rgba(0, 0, 0, 0.08);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: rgba(248, 250, 252, 0.7);
+      background: rgba(248, 250, 252, 0.85);
     }
     body.dark-theme .info-modal-header {
-      background: rgba(30, 41, 59, 0.7);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+      background: rgba(30, 41, 59, 0.85);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
     }
     .info-modal-body {
-      padding: 15px 16px;
+      padding: 16px 18px;
       overflow-y: auto;
-      font-size: 11px;
-      line-height: 1.55;
+      font-size: 13.5px;
+      line-height: 1.6;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -553,21 +660,21 @@
       border-radius: 3px;
     }
     .info-section {
-      background: rgba(0, 0, 0, 0.025);
-      border: 1px solid rgba(0, 0, 0, 0.07);
-      border-radius: 6px;
-      padding: 9px 12px;
+      background: rgba(0, 0, 0, 0.03);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 8px;
+      padding: 12px 14px;
     }
     body.dark-theme .info-section {
-      background: rgba(255, 255, 255, 0.035);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.045);
+      border: 1px solid rgba(255, 255, 255, 0.10);
     }
     .info-section-title {
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 700;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.05em;
       color: #0284c7;
-      margin-bottom: 5px;
+      margin-bottom: 8px;
       text-transform: uppercase;
       display: flex;
       align-items: center;
@@ -579,13 +686,14 @@
     .info-list {
       list-style: none;
       padding-left: 0;
+      margin: 0;
       display: flex;
       flex-direction: column;
-      gap: 3px;
+      gap: 6px;
     }
     .info-list li {
       position: relative;
-      padding-left: 13px;
+      padding-left: 15px;
     }
     .info-list li::before {
       content: "•";
@@ -598,54 +706,122 @@
       color: #38bdf8;
     }
     .info-modal-footer {
-      padding: 9px 16px;
+      padding: 12px 18px;
       border-top: 1px solid rgba(0, 0, 0, 0.08);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 10px;
-      color: #64748b;
-      background: rgba(248, 250, 252, 0.55);
+      font-size: 12.5px;
+      color: #475569;
+      background: rgba(248, 250, 252, 0.7);
     }
     body.dark-theme .info-modal-footer {
-      border-top: 1px solid rgba(255, 255, 255, 0.10);
-      background: rgba(30, 41, 59, 0.55);
-      color: #94a3b8;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(30, 41, 59, 0.7);
+      color: #cbd5e1;
     }
     .ste-badge {
       display: inline-block;
-      font-size: 8px;
+      font-size: 10.5px;
       font-weight: 700;
-      letter-spacing: 0.05em;
-      padding: 2px 6px;
-      border-radius: 4px;
+      letter-spacing: 0.04em;
+      padding: 3px 8px;
+      border-radius: 5px;
       background: rgba(14, 165, 233, 0.15);
       color: #0284c7;
-      border: 1px solid rgba(14, 165, 233, 0.3);
+      border: 1px solid rgba(14, 165, 233, 0.35);
     }
     body.dark-theme .ste-badge {
-      background: rgba(56, 189, 248, 0.15);
-      color: #38bdf8;
-      border: 1px solid rgba(56, 189, 248, 0.3);
+      background: rgba(56, 189, 248, 0.18);
+      color: #7dd3fc;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+    }
+
+    /* Mobile Responsive Optimizations */
+    @media (max-width: 640px) {
+      #preset-hud {
+        top: 10px;
+        left: 10px;
+        min-width: 105px;
+        max-width: 140px;
+        padding: 5px 8px;
+      }
+      .preset-hud-name {
+        font-size: 11px;
+      }
+      .preset-hud-pct {
+        font-size: 10px;
+      }
+      .preset-hud-bar-bg {
+        height: 3.5px;
+      }
+      #preset-toast {
+        top: 48px;
+        font-size: 13px;
+        padding: 6px 14px;
+      }
+      #fps {
+        bottom: 8px;
+        left: 10px;
+        font-size: 10px;
+      }
+      #matrix-panel {
+        top: 10px;
+        right: 10px;
+        width: 255px;
+        max-width: calc(100vw - 20px);
+        padding: 8px 10px;
+      }
+      #matrix-panel.collapsed {
+        min-width: 0;
+        max-width: max-content;
+        width: auto;
+        padding: 4px 6px;
+      }
+      #matrix-panel.collapsed .panel-title {
+        display: none;
+      }
+      #matrix-panel.collapsed .panel-header {
+        gap: 3px;
+        margin-bottom: 0;
+      }
+      #matrix-panel.collapsed .mini-btn {
+        padding: 2.5px 5px;
+        font-size: 10px;
+        min-height: 22px;
+      }
+      #matrix-panel:not(.collapsed) {
+        top: 44px;
+        right: 10px;
+        max-height: calc(100vh - 54px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .info-modal-content {
+        max-height: 85vh;
+      }
     }
   </style>
 </head>
 <body class="dark-theme">
-  <div id="top-left-hud">
-    <div class="circular-widget" id="donut-chart" title="Population distribution: Red | Green | Yellow | Blue">
-      <div class="donut-core">
-        <div class="donut-dot" id="donut-dot"></div>
-      </div>
+  <div id="preset-hud" title="Active preset & goal progress (Auto-cycles to next preset at ~80% success)">
+    <div class="preset-hud-top">
+      <span class="preset-hud-name" id="preset-hud-name">TRIBES</span>
+      <span class="preset-hud-pct" id="preset-hud-pct">0%</span>
+    </div>
+    <div class="preset-hud-bar-bg">
+      <div class="preset-hud-bar-fill" id="preset-hud-bar"></div>
     </div>
   </div>
+  <div id="preset-toast"></div>
   <div id="fps">-- FPS</div>
   <div id="matrix-panel">
-    <div class="panel-header">
+    <div class="panel-header" id="panel-header" title="Click to expand/collapse panel">
       <span class="panel-title">FORCES (A &rarr; B)</span>
-      <div style="display:flex; gap:3px; align-items:center;">
-        <button id="info-btn" class="mini-btn" title="System Specification (ASD-STE100)" style="font-weight:700; font-size:10px; padding:1px 5px;">ⓘ</button>
+      <div style="display:flex; gap:3px; align-items:center;" onclick="event.stopPropagation();">
+        <button id="pin-btn" class="mini-btn" title="Panel Pinned: OFF (Auto-hides on inactivity). Click to turn ON"><span class="pin-icon">📌</span><span id="pin-state">OFF</span></button>
+        <button id="info-btn" class="mini-btn" title="System Specification (ASD-STE100)">ⓘ</button>
         <button id="theme-btn" class="mini-btn" title="Toggle White/Dark Background">🌓</button>
-        <button id="toggle-matrix-btn" class="mini-btn">Hide</button>
       </div>
     </div>
     <div id="matrix-body">
@@ -655,16 +831,20 @@
       </div>
       <div id="matrix-grid-container"></div>
       <div class="preset-row">
-        <button class="preset-btn active" data-preset="chase">Chase</button>
-        <button class="preset-btn" data-preset="tribes">Tribes</button>
+        <button class="preset-btn active" data-preset="tribes">Tribes</button>
+        <button class="preset-btn" data-preset="chase">Chase</button>
         <button class="preset-btn" data-preset="predator">Predator</button>
+        <button class="preset-btn" data-preset="symbiosis">Symbiosis</button>
+        <button class="preset-btn" data-preset="vortex">Vortex</button>
+        <button class="preset-btn" data-preset="alliances">Alliances</button>
+        <button class="preset-btn" data-preset="swarm">Swarm</button>
         <button class="preset-btn" data-preset="chaos">Chaos</button>
         <button class="preset-btn" data-preset="random">Random</button>
         <button class="preset-btn" data-preset="zero">Neutral</button>
       </div>
 
       <div style="margin-top:6px; padding-top:5px; border-top:1px solid rgba(125,125,125,0.2);">
-        <button id="toggle-balance-btn" class="preset-btn" style="width:100%; font-weight:600; color:#0284c7; padding:3px 0; margin-bottom:5px;">&#9878; Balance: ON</button>
+        <button id="toggle-balance-btn" class="preset-btn" style="width:100%; font-weight:600; color:#38bdf8; padding:3px 0; margin-bottom:5px;">&#9878; Balance: ON</button>
         
         <div style="font-size:9px; font-weight:700; display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
           <span>VERTICAL ZONES</span>
@@ -675,6 +855,51 @@
         <div style="font-size:9px; font-weight:700; display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
           <span>LIFE (<span id="pop-val">--</span>)</span>
           <button id="toggle-life-btn" class="mini-btn" style="padding:0 4px; font-size:8px;">ON</button>
+        </div>
+
+        <div style="font-size:9px; font-weight:700; display:flex; justify-content:space-between; align-items:center; margin-top:5px; margin-bottom:3px;">
+          <span>COLOR PALETTE</span>
+          <span id="palette-name-badge" class="slider-badge" style="font-size:8px; padding:1px 5px;">Classic</span>
+        </div>
+        <div class="color-palette-row" id="color-palette-buttons">
+          <button class="preset-btn active" data-color-preset="classic" title="Classic Domino: Red, Green, Yellow, Blue">Classic</button>
+          <button class="preset-btn" data-color-preset="neon" title="Cyberpunk Neon: Hot Pink, Cyan, Lime, Violet">Neon</button>
+          <button class="preset-btn" data-color-preset="pastel" title="Gelato Pastel: Coral, Mint, Butter, Sky">Pastel</button>
+          <button class="preset-btn" data-color-preset="sunset" title="Warm Sunset: Crimson, Flame, Amber, Plum">Sunset</button>
+          <button class="preset-btn" data-color-preset="glacier" title="Nordic Glacier: Teal, Mint, Frost, Ultramarine">Glacier</button>
+          <button class="preset-btn" data-color-preset="earth" title="Forest Earth: Terracotta, Fern, Ochre, Moss">Earth</button>
+        </div>
+
+        <div class="slider-container" style="margin-top:6px; padding-top:6px;">
+          <div class="slider-header">
+            <span class="slider-title">FORCE POWER</span>
+            <span id="force-power-val" class="slider-badge">3.5&times;</span>
+          </div>
+          <div class="slider-wrapper">
+            <input type="range" id="force-power-slider" class="modern-slider" min="1.0" max="8.0" step="0.5" value="3.5">
+            <div class="slider-ticks">
+              <span>1.0&times;</span>
+              <span>3.5&times;</span>
+              <span>5.5&times;</span>
+              <span>8.0&times;</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="slider-container" style="margin-top:6px; padding-top:6px;">
+          <div class="slider-header">
+            <span class="slider-title">SIM SPEED</span>
+            <span id="sim-speed-val" class="slider-badge">1.0&times;</span>
+          </div>
+          <div class="slider-wrapper">
+            <input type="range" id="sim-speed-slider" class="modern-slider" min="0.5" max="4.0" step="0.5" value="1.0">
+            <div class="slider-ticks">
+              <span>0.5&times;</span>
+              <span>1.0&times;</span>
+              <span>2.0&times;</span>
+              <span>4.0&times;</span>
+            </div>
+          </div>
         </div>
 
         <div class="slider-container">
@@ -700,27 +925,27 @@
   <div id="info-modal" class="info-modal-backdrop">
     <div class="info-modal-content">
       <div class="info-modal-header">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-weight:700; font-size:11px; letter-spacing:0.04em;">SYSTEM SPECIFICATION</span>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-weight:700; font-size:14px; letter-spacing:0.04em;">SYSTEM SPECIFICATION</span>
           <span class="ste-badge">ASD-STE100 COMPLIANT</span>
         </div>
-        <button id="close-info-btn" class="mini-btn" style="width:20px; height:20px; font-size:11px; line-height:1; padding:0; display:flex; align-items:center; justify-content:center;">✕</button>
+        <button id="close-info-btn" class="mini-btn" style="width:26px; height:26px; font-size:13px; line-height:1; padding:0; display:flex; align-items:center; justify-content:center;">✕</button>
       </div>
 
-      <div class="info-modal-body" style="padding:12px 14px; gap:8px;">
-        <div class="info-section" style="padding:7px 10px;">
-          <div class="info-section-title" style="margin-bottom:4px;">1. SPECIES MOTILITY</div>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; font-size:10px;">
-            <div>🟡 <strong>Yellow</strong>: 3.5 c/s (Dart)</div>
-            <div>🔴 <strong>Red</strong>: 2.7 c/s (Sprint)</div>
-            <div>🟢 <strong>Green</strong>: 1.8 c/s (Cruise)</div>
-            <div>🔵 <strong>Blue</strong>: 1.15 c/s (Glide)</div>
+      <div class="info-modal-body">
+        <div class="info-section">
+          <div class="info-section-title">1. SPECIES MOTILITY</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px 12px; font-size:13.5px;">
+            <div>🟡 <strong>Yellow</strong>: 1.9 c/s (Dart)</div>
+            <div>🔴 <strong>Red</strong>: 1.6 c/s (Sprint)</div>
+            <div>🟢 <strong>Green</strong>: 1.2 c/s (Cruise)</div>
+            <div>🔵 <strong>Blue</strong>: 0.9 c/s (Glide)</div>
           </div>
         </div>
 
-        <div class="info-section" style="padding:7px 10px;">
-          <div class="info-section-title" style="margin-bottom:4px;">2. RULES & FORCES</div>
-          <ul class="info-list" style="font-size:10.5px; gap:2px;">
+        <div class="info-section">
+          <div class="info-section-title">2. RULES & FORCES</div>
+          <ul class="info-list">
             <li><strong>Matrix</strong>: Green attracts (+), Red repels (-).</li>
             <li><strong>Zones</strong>: Species steer to assigned vertical levels.</li>
             <li><strong>Life</strong>: Division at high energy; starvation at zero.</li>
@@ -728,18 +953,18 @@
           </ul>
         </div>
 
-        <div class="info-section" style="padding:7px 10px;">
-          <div class="info-section-title" style="margin-bottom:4px;">3. CONTROLS</div>
-          <ul class="info-list" style="font-size:10.5px; gap:2px;">
-            <li><strong>Canvas</strong>: Drag to rotate (speed capped) | Scroll to zoom.</li>
-            <li><strong>Panel</strong>: Adjust forces, zones, presets, and cube size.</li>
+        <div class="info-section">
+          <div class="info-section-title">3. CONTROLS</div>
+          <ul class="info-list">
+            <li><strong>Canvas</strong>: Drag to rotate (speed capped) | Pinch or scroll to zoom.</li>
+            <li><strong>Panel</strong>: Adjust forces, presets, color palettes, zones, and cube size.</li>
           </ul>
         </div>
       </div>
 
       <div class="info-modal-footer">
         <span>Press [ESC] or click outside to dismiss</span>
-        <button id="ok-info-btn" class="mini-btn" style="padding:3px 10px; font-weight:600;">Close</button>
+        <button id="ok-info-btn" class="mini-btn" style="padding:5px 14px; font-size:13px; font-weight:600;">Close</button>
       </div>
     </div>
   </div>
@@ -768,7 +993,7 @@
       let velX = 0;
       let velY = 0;
 
-      let targetZoom = 1.0;
+      let targetZoom = 1.65;
       let zoom = targetZoom;
 
       let baseDistance = 58.0; // Scaled for 31x31 viewing
@@ -792,9 +1017,12 @@
         q[0] /= len; q[1] /= len; q[2] /= len; q[3] /= len;
       }
 
-      // Continuous Horizon Correction: gently rights the cube so horizontal edges
-      // remain parallel to the horizon with zero roll tilt
-      function correctHorizon(rate = 0.06) {
+      // Continuous Horizon Alignment (when balance is OFF):
+      // Gently and gracefully rights the cube so horizontal edges are level with the horizon,
+      // roll tilt is zeroed, and pitch smoothly restores to the comfortable -26° viewing perspective.
+      const TARGET_TOP_CAMERA = [0, Math.cos(26 * Math.PI / 180), -Math.sin(26 * Math.PI / 180)];
+
+      function correctHorizon(rate = 0.08) {
         const x = quat[0], y = quat[1], z = quat[2], w = quat[3];
         const x2 = x + x, y2 = y + y, z2 = z + z;
         const xx = x * x2, xy = x * y2, xz = x * z2;
@@ -811,6 +1039,7 @@
           c2, [-c2[0], -c2[1], -c2[2]]
         ];
 
+        // Find the cube face axis pointing most upward in camera space
         let bestAxis = axes[0];
         let maxDot = bestAxis[1];
         for (let i = 1; i < 6; i++) {
@@ -820,17 +1049,29 @@
           }
         }
 
-        const rollAngle = Math.atan2(bestAxis[0], bestAxis[1]);
-        if (Math.abs(rollAngle) < 1e-5) return;
+        // Restorative torque axis in camera space: A = bestAxis x TARGET_TOP_CAMERA
+        const ax = bestAxis[1] * TARGET_TOP_CAMERA[2] - bestAxis[2] * TARGET_TOP_CAMERA[1];
+        const ay = bestAxis[2] * TARGET_TOP_CAMERA[0] - bestAxis[0] * TARGET_TOP_CAMERA[2];
+        const az = bestAxis[0] * TARGET_TOP_CAMERA[1] - bestAxis[1] * TARGET_TOP_CAMERA[0];
+        const aLen = Math.hypot(ax, ay, az);
 
-        const dRoll = rollAngle * rate;
-        const half = dRoll * 0.5;
-        const dq = [0, 0, Math.sin(half), Math.cos(half)];
-
-        const temp = [0, 0, 0, 1];
-        quatMultiply(temp, dq, quat);
-        quat[0] = temp[0]; quat[1] = temp[1]; quat[2] = temp[2]; quat[3] = temp[3];
-        quatNormalize(quat);
+        if (aLen > 1e-4) {
+          const dot = bestAxis[0] * TARGET_TOP_CAMERA[0] + bestAxis[1] * TARGET_TOP_CAMERA[1] + bestAxis[2] * TARGET_TOP_CAMERA[2];
+          const angle = Math.atan2(aLen, dot);
+          const step = Math.min(angle * rate, 0.08);
+          const half = step * 0.5;
+          const sinH = Math.sin(half);
+          const dq = [
+            (ax / aLen) * sinH,
+            (ay / aLen) * sinH,
+            (az / aLen) * sinH,
+            Math.cos(half)
+          ];
+          const temp = [0, 0, 0, 1];
+          quatMultiply(temp, dq, quat);
+          quat[0] = temp[0]; quat[1] = temp[1]; quat[2] = temp[2]; quat[3] = temp[3];
+          quatNormalize(quat);
+        }
       }
 
       const MAX_ROTATION_SPEED = 0.065; // Cap maximum angular speed to prevent excessive spinning
@@ -935,6 +1176,8 @@
         uniform mat4 uMVP;
         uniform mat4 uModelView;
         uniform float uIsLight;
+        uniform float uCamDist;
+        uniform float uHalf;
         varying vec4 vColor;
 
         void main() {
@@ -944,16 +1187,22 @@
 
           float NdotV = dot(normalize(normalView), normalize(viewDir));
 
+          // Depth of Field (DoF) attenuation for gridlines
+          float nearD = max(uCamDist - (uHalf + 2.0), 1.0);
+          float farD  = uCamDist + (uHalf + 2.0);
+          float normDepth = clamp((-posView.z - nearD) / (farD - nearD), 0.0, 1.0);
+          float dofAtten = 1.0 - smoothstep(0.18, 0.92, normDepth) * 0.72;
+
           // Wireframe gridlines: Crisp charcoal on light mode; luminous silver on dark
           vec3 frontCol = mix(vec3(0.80, 0.84, 0.90), vec3(0.25, 0.30, 0.38), uIsLight);
           vec3 bgCol    = mix(vec3(0.08, 0.10, 0.14), vec3(0.68, 0.72, 0.78), uIsLight);
 
           if (NdotV < 0.0) {
-            // Far gridlines: very soft, faint background scaffold
-            vColor = vec4(mix(bgCol, frontCol, 0.35), aColor.a * 0.35);
+            // Far gridlines: very soft, out-of-focus background scaffold
+            vColor = vec4(mix(bgCol, frontCol, 0.30), aColor.a * 0.25 * dofAtten);
           } else {
-            // Front-facing gridlines: crisp slate lines on white; subtle silver on dark
-            vColor = vec4(frontCol, aColor.a * (uIsLight > 0.5 ? 0.90 : 0.70));
+            // Front-facing gridlines: crisp at focal plane, softly receding toward corners
+            vColor = vec4(frontCol, aColor.a * (uIsLight > 0.5 ? 0.90 : 0.70) * dofAtten);
           }
 
           gl_Position = uMVP * vec4(aPosition, 1.0);
@@ -969,7 +1218,7 @@
         }
       `;
 
-      // 3D Moving Tiles Shader (High-Performance GPU Instancing)
+      // 3D Moving Tiles Shader (High-Performance GPU Instancing + Natural Shutter Blur + Depth of Field)
       const vsTiles = `
         attribute vec3 aTemplatePos;
         attribute vec3 aTemplateNormal;
@@ -991,20 +1240,44 @@
         varying float vNormDepth;
         varying float vFacing;
         varying float vOutward;
+        varying float vCoC;
+        varying float vRadial;
+        varying float vIsBlur;
+        varying vec2 vLocalUV;
 
         void main() {
-          vec3 worldPos = aCenter + (aTemplatePos.x * aTu + aTemplatePos.y * aTv) * aScale + aTemplatePos.z * aNormal * aScale;
-          vec3 worldNormal = aTemplateNormal.x * aTu + aTemplateNormal.y * aTv + aTemplateNormal.z * aNormal;
+          vec4 centerView = uModelView * vec4(aCenter, 1.0);
+          float nearD = max(uCamDist - (uHalf + 3.0), 1.0);
+          float farD  = uCamDist + (uHalf + 3.0);
+          float normDepth = clamp((-centerView.z - nearD) / (farD - nearD), 0.0, 1.0);
+
+          // Circle of Confusion (CoC): 0.0 at closest focal plane, up to 1.0 on far out-of-focus faces
+          float coc = smoothstep(0.22, 0.94, normDepth);
+          vCoC = coc;
+          vNormDepth = normDepth;
+          vLocalUV = aTemplatePos.xy / 0.44;
+          vRadial = length(vLocalUV);
+
+          // Negative aScale encodes a soft, flush surface wake / shutter-blur slice
+          float isBlur = aScale < 0.0 ? 1.0 : 0.0;
+          vIsBlur = isBlur;
+          float baseScale = abs(aScale);
+
+          // Subtle optical expansion only for far out-of-focus bokeh (never bloat motion blur width!)
+          float bokehExpand = 1.0 + coc * 0.14 * (1.0 - isBlur);
+          // Flatten z-height for blur/trail slices so they glide flush on the glass without 3D side-wall artifacts
+          float zScale = isBlur > 0.5 ? (baseScale * 0.12) : baseScale;
+
+          vec3 worldPos = aCenter + (aTemplatePos.x * aTu + aTemplatePos.y * aTv) * (baseScale * bokehExpand) + aTemplatePos.z * aNormal * zScale;
+          // Use clean face normal for blur/trail slices so inner bevel rings never show double-vision outlines
+          vec3 worldNormal = isBlur > 0.5
+            ? aNormal
+            : (aTemplateNormal.x * aTu + aTemplateNormal.y * aTv + aTemplateNormal.z * aNormal);
 
           vec4 posView = uModelView * vec4(worldPos, 1.0);
           vViewDir = -posView.xyz;
           vNormal = (uModelView * vec4(worldNormal, 0.0)).xyz;
           vColor = aColor;
-
-          // Normalized depth across the cube: 0.0 = closest face, 1.0 = farthest face
-          float nearD = max(uCamDist - (uHalf + 3.0), 1.0);
-          float farD  = uCamDist + (uHalf + 3.0);
-          vNormDepth = clamp((-posView.z - nearD) / (farD - nearD), 0.0, 1.0);
 
           // Facing factor: positive when normal points toward camera, negative when facing away
           vFacing = dot(normalize(vNormal), normalize(-posView.xyz));
@@ -1016,7 +1289,7 @@
         }
       `;
 
-      // Shiny Polished Plastic Domino Shader (Melamine/Bakelite finish) with Depth & Backside Attenuation
+      // Shiny Polished Plastic Domino Shader with Natural Shutter Blur & Optical Depth of Field (DoF)
       const fsTiles = `
         precision mediump float;
         uniform float uIsFront;
@@ -1027,11 +1300,18 @@
         varying float vNormDepth;
         varying float vFacing;
         varying float vOutward;
+        varying float vCoC;
+        varying float vRadial;
+        varying float vIsBlur;
+        varying vec2 vLocalUV;
 
         void main() {
           vec3 n = normalize(vNormal);
           vec3 v = normalize(vViewDir);
           if (dot(n, v) < 0.0) n = -n;
+
+          // Combined optical blur factor from Depth of Field (vCoC) and Shutter/Wake Blur (vIsBlur)
+          float blurFactor = clamp(vCoC + vIsBlur * 0.90, 0.0, 1.0);
 
           // 1. Studio Key & Fill Lights
           vec3 light1 = normalize(vec3(0.55, 0.85, 0.55));
@@ -1040,14 +1320,16 @@
           vec3 light2 = normalize(vec3(-0.65, -0.20, 0.70));
           float NdotL2 = max(dot(n, light2), 0.0);
 
-          // Shiny plastic specular reflections (sharp, polished domino finish)
+          // Specular broadening: sharp 64.0 on crisp tiles, diffused sheen on DoF tiles
           vec3 r1 = reflect(-v, n);
-          float spec1 = pow(max(dot(r1, light1), 0.0), 64.0);
-          float spec2 = pow(max(dot(r1, light2), 0.0), 32.0);
+          float specExp1 = mix(64.0, 10.0, blurFactor);
+          float specExp2 = mix(32.0, 6.0, blurFactor);
+          float spec1 = pow(max(dot(r1, light1), 0.0), specExp1) * mix(1.0, 0.15, blurFactor);
+          float spec2 = pow(max(dot(r1, light2), 0.0), specExp2) * mix(1.0, 0.15, blurFactor);
 
           // Plastic Fresnel: reflection at grazing angles
           float NdotV = max(dot(n, v), 0.0);
-          float fresnel = 0.06 + 0.94 * pow(1.0 - NdotV, 3.5);
+          float fresnel = (0.06 + 0.94 * pow(1.0 - NdotV, 3.5)) * mix(1.0, 0.12, blurFactor);
 
           // 2. Depth & Camera-Facing Prominence Attenuation
           float depthFactor = 1.0 - vNormDepth; // 1.0 = close, 0.0 = far
@@ -1056,30 +1338,37 @@
 
           // 3. Backside Attenuation (surfaces facing inward into the cube interior)
           float outwardSmooth = smoothstep(-0.25, 0.25, vOutward);
-          float backsideDamp = mix(0.58, 1.0, outwardSmooth);
+          float backsideDamp = mix(0.52, 1.0, outwardSmooth);
           if (uIsFront < 0.5) {
-            backsideDamp *= 0.85; // gently dimmed on rear faces, keeping vibrant color
+            backsideDamp *= 0.78;
           }
 
-          // Combined prominence curve:
-          // Front camera-facing = ~1.0; Far inward-facing = ~0.35 (clearly visible, softly fainted)
-          float baseProminence = mix(0.55, 1.0, depthCurve * 0.55 + faceFactor * 0.45);
+          float baseProminence = mix(0.45, 1.0, depthCurve * 0.60 + faceFactor * 0.40);
           float prominence = baseProminence * backsideDamp;
 
-          // Ambient + Diffuse (rich base color so inward tiles never turn dark or muddy)
-          vec3 ambient = vColor.rgb * (0.32 + 0.16 * prominence);
+          // Ambient + Diffuse
+          vec3 ambient = vColor.rgb * (0.34 + 0.16 * prominence + vIsBlur * 0.12);
           vec3 diffuse = vColor.rgb * (NdotL1 * 0.60 + NdotL2 * 0.25) * (0.45 + 0.55 * prominence);
 
-          // Specular highlights: crisp on outward faces, gentle soft matte sheen on inward backsides
-          float specIntensity = (0.08 + 0.92 * outwardSmooth) * (0.35 + 0.65 * prominence);
+          // Specular highlights (suppressed on soft motion-blur / wake slices so they never create hard glare lines)
+          float specIntensity = (0.08 + 0.92 * outwardSmooth) * (0.35 + 0.65 * prominence) * (1.0 - vIsBlur * 0.88);
           vec3 specular = vec3(1.0) * (spec1 * 0.85 + spec2 * 0.30 + fresnel * 0.35) * specIntensity;
 
-          // Atmospheric tinting: adapts seamlessly between light background and dark background
-          vec3 bgMist = mix(vec3(0.02, 0.03, 0.04), vec3(0.78, 0.81, 0.85), uIsLight);
+          // Atmospheric & Depth-of-Field haze: blends out-of-focus rear tiles smoothly into the interior mist
+          vec3 bgMist = mix(vec3(0.05, 0.07, 0.11), vec3(0.78, 0.82, 0.87), uIsLight);
           vec3 litColor = ambient + diffuse + specular;
-          vec3 faintedColor = mix(bgMist, litColor, clamp(prominence * 0.55 + 0.45, 0.0, 1.0));
+          float dofMix = clamp(prominence * (1.0 - vCoC * 0.45) * 0.65 + 0.35, 0.0, 1.0);
+          vec3 faintedColor = mix(bgMist, litColor, dofMix);
 
-          gl_FragColor = vec4(faintedColor, 1.0);
+          // Smooth rounded-box distance field for natural optical feathering on blur/trail slices
+          vec2 q = abs(vLocalUV) - vec2(0.52);
+          float boxDist = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
+          float softWakeMask = 1.0 - smoothstep(-0.35, 0.48, boxDist);
+          float dofEdgeMask = 1.0 - vCoC * smoothstep(0.55, 1.05, vRadial) * 0.55;
+          float edgeMask = mix(dofEdgeMask, softWakeMask * dofEdgeMask, vIsBlur);
+          float dofAlpha = vColor.a * mix(1.0, 0.58, vCoC) * edgeMask;
+
+          gl_FragColor = vec4(faintedColor, dofAlpha);
         }
       `;
 
@@ -1123,7 +1412,9 @@
         color: gl.getAttribLocation(progLines, 'aColor'),
         uMVP: gl.getUniformLocation(progLines, 'uMVP'),
         uModelView: gl.getUniformLocation(progLines, 'uModelView'),
-        uIsLight: gl.getUniformLocation(progLines, 'uIsLight')
+        uIsLight: gl.getUniformLocation(progLines, 'uIsLight'),
+        uCamDist: gl.getUniformLocation(progLines, 'uCamDist'),
+        uHalf: gl.getUniformLocation(progLines, 'uHalf')
       };
 
       const progTiles = createProgram(gl, vsTiles, fsTiles);
@@ -1369,37 +1660,44 @@
       }
 
       // 4. Shiny Plastic Domino Tiles Simulation (Particle Life with Color Attraction/Repulsion Matrix)
-      // 4 Domino Colors: 0: Red, 1: Green, 2: Yellow, 3: Blue (Melamine/Bakelite pigment)
-      const colors = [
-        [0.96, 0.20, 0.24, 1.0], // 0: Rich Domino Red
-        [0.10, 0.88, 0.38, 1.0], // 1: Rich Domino Green
-        [0.98, 0.84, 0.12, 1.0], // 2: Rich Domino Yellow
-        [0.18, 0.60, 0.98, 1.0]  // 3: Rich Domino Blue
+      // 4 Domino Colors: 0: Species 1, 1: Species 2, 2: Species 3, 3: Species 4
+      let colors = [
+        [0.96, 0.20, 0.24, 1.0], // 0: Red
+        [0.10, 0.88, 0.38, 1.0], // 1: Green
+        [0.98, 0.84, 0.12, 1.0], // 2: Yellow
+        [0.18, 0.60, 0.98, 1.0]  // 3: Blue
       ];
+
+      function colorToHex(c) {
+        const r = Math.round(c[0] * 255).toString(16).padStart(2, '0');
+        const g = Math.round(c[1] * 255).toString(16).padStart(2, '0');
+        const b = Math.round(c[2] * 255).toString(16).padStart(2, '0');
+        return `#${r}${g}${b}`;
+      }
 
       // 4x4 Asymmetric Attraction/Repulsion Matrix: colorMatrix[sourceColor][targetColor] in [-1.0, +1.0]
       // Defines the force felt by species A toward species B (A->B can be different from B->A)
       // Positive = attracted (chases / swarms), Negative = repelled (flees / evades)
       let colorMatrix = [
         //          Red    Green  Yellow   Blue   (Target B)
-        /* Red   */ [ 0.40,  1.00, -0.50, -1.00 ],
-        /* Green */ [ -1.00, 0.40,  1.00, -0.50 ],
-        /* Yellow*/ [ -0.50, -1.00, 0.40,  1.00 ],
-        /* Blue  */ [  1.00, -0.50, -1.00, 0.40 ]
+        /* Red   */ [  1.00, -0.90, -0.90, -0.90 ],
+        /* Green */ [ -0.90,  1.00, -0.90, -0.90 ],
+        /* Yellow*/ [ -0.90, -0.90,  1.00, -0.90 ],
+        /* Blue  */ [ -0.90, -0.90, -0.90,  1.00 ]
         // (Source A)
       ];
 
       // Distinct Motility Profiles per Color Species (Speed & Reflex Cadence)
-      // 0: Red    - Swift aggressive sprinter   (~2.7 cells/s)
-      // 1: Green  - Balanced rhythmic cadence    (~1.8 cells/s)
-      // 2: Yellow - Lightning fast & hyperactive (~3.5 cells/s)
-      // 3: Blue   - Heavy, stately & deliberate  (~1.15 cells/s)
-      const COLOR_BASE_SPEEDS = [2.7, 1.8, 3.5, 1.15];
+      // 0: Red    - Swift aggressive sprinter   (~1.6 cells/s)
+      // 1: Green  - Balanced rhythmic cadence    (~1.2 cells/s)
+      // 2: Yellow - Agile & active               (~1.9 cells/s)
+      // 3: Blue   - Heavy, stately & deliberate  (~0.9 cells/s)
+      const COLOR_BASE_SPEEDS = [1.6, 1.2, 1.9, 0.9];
       const COLOR_WAIT_RANGES = [
-        [0.05, 0.15], // Red: rapid reflexes
-        [0.15, 0.35], // Green: steady cadence
-        [0.02, 0.08], // Yellow: twitchy hyperactive reflexes
-        [0.35, 0.70]  // Blue: heavy momentum & long deliberate pauses
+        [0.06, 0.14], // Red: prompt reflexes
+        [0.10, 0.22], // Green: steady cadence
+        [0.04, 0.10], // Yellow: quick cadence
+        [0.16, 0.32]  // Blue: deliberate pauses
       ];
       const COLOR_SPEED_NAMES = ['Fast ⚡', 'Medium 🚶', 'Very Fast 🚀', 'Slow 🐢'];
 
@@ -1437,7 +1735,11 @@
           const p0 = s0;
           const p1 = p0 + s1;
           const p2 = p1 + s2;
-          donutChartEl.style.background = `conic-gradient(#ef4444 0% ${p0.toFixed(1)}%, #22c55e ${p0.toFixed(1)}% ${p1.toFixed(1)}%, #eab308 ${p1.toFixed(1)}% ${p2.toFixed(1)}%, #3b82f6 ${p2.toFixed(1)}% 100%)`;
+          const h0 = colorToHex(colors[0]);
+          const h1 = colorToHex(colors[1]);
+          const h2 = colorToHex(colors[2]);
+          const h3 = colorToHex(colors[3]);
+          donutChartEl.style.background = `conic-gradient(${h0} 0% ${p0.toFixed(1)}%, ${h1} ${p0.toFixed(1)}% ${p1.toFixed(1)}%, ${h2} ${p1.toFixed(1)}% ${p2.toFixed(1)}%, ${h3} ${p2.toFixed(1)}% 100%)`;
 
           const totalInit = initialTotalPop || 1;
           const totalDeltaPct = Math.round(((len - totalInit) / totalInit) * 100);
@@ -1489,6 +1791,9 @@
               fromFace: face,
               fromU: u,
               fromV: v,
+              prevFace: -1,
+              prevU: -1,
+              prevV: -1,
               targetFace: face,
               targetU: u,
               targetV: v,
@@ -1497,6 +1802,8 @@
               moveSpeed: bSpeed + pseudoRandom() * 0.4,
               waitTimer: wRange[0] + pseudoRandom() * (wRange[1] - wRange[0]),
               dir: pseudoRandom() > 0.5 ? [1, 0] : [0, 1],
+              vx: 0, vy: 0, vz: 0,
+              stuckTimer: 0.0,
               colorIndex: colorIdx,
               color: col,
               energy: 1.0,
@@ -1611,17 +1918,33 @@
       gl.bindBuffer(gl.ARRAY_BUFFER, tileTemplateBuffer);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(templateFloats), gl.STATIC_DRAW);
 
-      // Instanced per-tile dynamic buffers (17 floats per tile)
+      // Instanced per-tile dynamic buffers (17 floats per instance)
+      // Separated into Depth-Write Off (Trail/Blur Wake) and Depth-Write On (Solid 3D Tiles)
       const FLOATS_PER_INSTANCE = 17;
-      const MAX_TILES = 12000;
+      const MAX_TILES = 48000;
+      const backTrailData = new Float32Array(MAX_TILES * FLOATS_PER_INSTANCE);
+      const frontTrailData = new Float32Array(MAX_TILES * FLOATS_PER_INSTANCE);
       const backInstanceData = new Float32Array(MAX_TILES * FLOATS_PER_INSTANCE);
       const frontInstanceData = new Float32Array(MAX_TILES * FLOATS_PER_INSTANCE);
+
+      const backTrailBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, backTrailBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, backTrailData.byteLength, gl.DYNAMIC_DRAW);
+
+      const frontTrailBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, frontTrailBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, frontTrailData.byteLength, gl.DYNAMIC_DRAW);
+
       const backInstanceBuffer = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, backInstanceBuffer);
       gl.bufferData(gl.ARRAY_BUFFER, backInstanceData.byteLength, gl.DYNAMIC_DRAW);
+
       const frontInstanceBuffer = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, frontInstanceBuffer);
       gl.bufferData(gl.ARRAY_BUFFER, frontInstanceData.byteLength, gl.DYNAMIC_DRAW);
+
+      let backTrailCount = 0;
+      let frontTrailCount = 0;
       let backInstanceCount = 0;
       let frontInstanceCount = 0;
 
@@ -1630,8 +1953,8 @@
 
       // --- Interactive 4x4 Color Attraction/Repulsion Matrix Controller ---
       const matrixPanel = document.getElementById('matrix-panel');
+      const panelHeader = document.getElementById('panel-header');
       const matrixGridContainer = document.getElementById('matrix-grid-container');
-      const toggleMatrixBtn = document.getElementById('toggle-matrix-btn');
       const themeBtn = document.getElementById('theme-btn');
       let isLight = false; // Dark mode default
 
@@ -1642,6 +1965,8 @@
           document.body.classList.toggle('dark-theme', !isLight);
           themeBtn.title = isLight ? 'Switch to Dark Theme' : 'Switch to White Theme';
           updateSliderTrack();
+          updateSpeedSliderTrack();
+          updateForcePowerSliderTrack();
         });
       }
 
@@ -1650,16 +1975,49 @@
         matrixPanel.addEventListener(evt, e => e.stopPropagation());
       });
 
-      // Auto-hide panel after 5 seconds of inactivity
+      // Pin Controller: Lock panel open on screen
+      let isPinned = false; // OFF by default (auto-hides on inactivity unless pinned)
+      const pinBtn = document.getElementById('pin-btn');
+      const pinStateEl = document.getElementById('pin-state');
+
+      if (pinBtn) {
+        pinBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          isPinned = !isPinned;
+          pinBtn.classList.toggle('pinned', isPinned);
+          if (pinStateEl) pinStateEl.textContent = isPinned ? 'ON' : 'OFF';
+          pinBtn.title = isPinned ? 'Panel Pinned: ON (Locked on screen). Click to turn OFF' : 'Panel Pinned: OFF (Auto-hides on inactivity). Click to turn ON';
+          if (isPinned) {
+            if (autoHideTimer) clearTimeout(autoHideTimer);
+            matrixPanel.classList.remove('collapsed');
+          } else {
+            resetAutoHideTimer();
+          }
+        });
+      }
+
+      // Clicking panel header toggles open/collapsed smoothly when unpinned
+      if (panelHeader) {
+        panelHeader.addEventListener('click', () => {
+          if (!isPinned) {
+            matrixPanel.classList.toggle('collapsed');
+            if (!matrixPanel.classList.contains('collapsed')) {
+              resetAutoHideTimer();
+            }
+          }
+        });
+      }
+
+      // Auto-hide panel after 6 seconds of inactivity (only when unpinned)
       let autoHideTimer = null;
       function resetAutoHideTimer() {
         if (autoHideTimer) clearTimeout(autoHideTimer);
+        if (isPinned) return; // Strictly disabled when pinned!
         autoHideTimer = setTimeout(() => {
           if (!matrixPanel.classList.contains('collapsed')) {
             matrixPanel.classList.add('collapsed');
-            toggleMatrixBtn.textContent = 'Show';
           }
-        }, 5000);
+        }, 6000);
       }
       resetAutoHideTimer();
 
@@ -1667,13 +2025,11 @@
         matrixPanel.addEventListener(evt, resetAutoHideTimer);
       });
       matrixPanel.addEventListener('mouseleave', resetAutoHideTimer);
-
-      toggleMatrixBtn.addEventListener('click', () => {
-        matrixPanel.classList.toggle('collapsed');
-        toggleMatrixBtn.textContent = matrixPanel.classList.contains('collapsed') ? 'Show' : 'Hide';
-        if (!matrixPanel.classList.contains('collapsed')) {
-          resetAutoHideTimer();
+      matrixPanel.addEventListener('mouseenter', () => {
+        if (!isPinned && matrixPanel.classList.contains('collapsed')) {
+          matrixPanel.classList.remove('collapsed');
         }
+        resetAutoHideTimer();
       });
 
       // Info Modal (ASD-STE100 Rules Specification)
@@ -1712,17 +2068,65 @@
       // --- Vertical Elevation Preferences (Buoyancy / Stratification) ---
       // When spinning the cube, species navigate towards their preferred camera-space elevation
       const ZONE_LEVELS = [
-        { label: '▲ Top', val: HALF * 0.86 },
-        { label: '▲ High', val: HALF * 0.32 },
-        { label: '▬ Mid', val: 0.0 },
-        { label: '▼ Low', val: -HALF * 0.32 },
-        { label: '▼ Bot', val: -HALF * 0.86 },
-        { label: '○ Free', val: null }
+        { label: '▲ Top', val: HALF * 0.86, type: 'top' },
+        { label: '▲ High', val: HALF * 0.32, type: 'high' },
+        { label: '▬ Mid', val: 0.0, type: 'mid' },
+        { label: '▼ Low', val: -HALF * 0.32, type: 'low' },
+        { label: '▼ Bot', val: -HALF * 0.86, type: 'bot' },
+        { label: '○ Free', val: null, type: 'free' }
       ];
       // Default: Red: Low (-13.0), Green: High (+13.0), Yellow: Top (+35.0), Blue: Bot (-35.0)
       let colorVerticalIdx = [3, 1, 0, 4];
       let colorVerticalPref = colorVerticalIdx.map(idx => ZONE_LEVELS[idx].val);
       let verticalBuoyancyEnabled = true;
+
+      function getSkyTopFace() {
+        let bestF = 2, maxY = -Infinity;
+        for (let f = 0; f < 6; f++) {
+          const ny = rotateVecByQuat(faceBases[f].n, quat)[1];
+          if (ny > maxY) { maxY = ny; bestF = f; }
+        }
+        return bestF;
+      }
+
+      function getGroundBotFace() {
+        let bestF = 3, minY = Infinity;
+        for (let f = 0; f < 6; f++) {
+          const ny = rotateVecByQuat(faceBases[f].n, quat)[1];
+          if (ny < minY) { minY = ny; bestF = f; }
+        }
+        return bestF;
+      }
+
+      function getVerticalDesire(cIdx, face, curY) {
+        if (!verticalBuoyancyEnabled) return 0.0;
+        const zIdx = colorVerticalIdx[cIdx];
+        const lvl = ZONE_LEVELS[zIdx];
+        if (!lvl || lvl.type === 'free') return 0.0;
+        const type = lvl.type;
+        if (type === 'top') {
+          const targetY = HALF * 0.78;
+          if (curY >= targetY) return 0.0;
+          return Math.max(0.15, Math.min(1.0, (targetY - curY) / (HALF * 0.65)));
+        }
+        if (type === 'bot') {
+          const targetY = -HALF * 0.78;
+          if (curY <= targetY) return 0.0;
+          return Math.min(-0.15, Math.max(-1.0, (targetY - curY) / (HALF * 0.65)));
+        }
+        if (type === 'high') {
+          const targetY = HALF * 0.36;
+          return Math.max(-1.0, Math.min(1.0, (targetY - curY) / (HALF * 0.45)));
+        }
+        if (type === 'mid') {
+          return Math.max(-1.0, Math.min(1.0, -curY / (HALF * 0.45)));
+        }
+        if (type === 'low') {
+          const targetY = -HALF * 0.36;
+          return Math.max(-1.0, Math.min(1.0, (targetY - curY) / (HALF * 0.45)));
+        }
+        return 0.0;
+      }
 
       // --- Cube Size Slider Controller ---
       const cubeSizeSlider = document.getElementById('cube-size-slider');
@@ -1780,6 +2184,58 @@
         updateSliderTrack(subdivisions);
       }
 
+      // --- Force Power Slider Controller ---
+      let forcePowerMultiplier = 3.5;
+      const forcePowerSlider = document.getElementById('force-power-slider');
+      const forcePowerVal = document.getElementById('force-power-val');
+
+      function updateForcePowerSliderTrack(val) {
+        if (!forcePowerSlider) return;
+        const cur = parseFloat(val !== undefined ? val : forcePowerSlider.value);
+        const min = parseFloat(forcePowerSlider.min) || 1.0;
+        const max = parseFloat(forcePowerSlider.max) || 8.0;
+        const pct = Math.max(0, Math.min(100, ((cur - min) / (max - min)) * 100));
+        const activeColor = isLight ? '#0284c7' : '#38bdf8';
+        const inactiveColor = isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.12)';
+        const grad = `linear-gradient(90deg, ${activeColor} 0%, ${activeColor} ${pct.toFixed(1)}%, ${inactiveColor} ${pct.toFixed(1)}%, ${inactiveColor} 100%)`;
+        forcePowerSlider.style.setProperty('--track-fill', grad);
+      }
+
+      if (forcePowerSlider) {
+        forcePowerSlider.addEventListener('input', (e) => {
+          forcePowerMultiplier = parseFloat(e.target.value);
+          if (forcePowerVal) forcePowerVal.textContent = `${forcePowerMultiplier.toFixed(1)}×`;
+          updateForcePowerSliderTrack(forcePowerMultiplier);
+        });
+        updateForcePowerSliderTrack(forcePowerMultiplier);
+      }
+
+      // --- Simulation Speed Slider Controller ---
+      let simSpeedMultiplier = 1.0;
+      const simSpeedSlider = document.getElementById('sim-speed-slider');
+      const simSpeedVal = document.getElementById('sim-speed-val');
+
+      function updateSpeedSliderTrack(val) {
+        if (!simSpeedSlider) return;
+        const cur = parseFloat(val !== undefined ? val : simSpeedSlider.value);
+        const min = parseFloat(simSpeedSlider.min) || 0.5;
+        const max = parseFloat(simSpeedSlider.max) || 4.0;
+        const pct = Math.max(0, Math.min(100, ((cur - min) / (max - min)) * 100));
+        const activeColor = isLight ? '#0284c7' : '#38bdf8';
+        const inactiveColor = isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.12)';
+        const grad = `linear-gradient(90deg, ${activeColor} 0%, ${activeColor} ${pct.toFixed(1)}%, ${inactiveColor} ${pct.toFixed(1)}%, ${inactiveColor} 100%)`;
+        simSpeedSlider.style.setProperty('--track-fill', grad);
+      }
+
+      if (simSpeedSlider) {
+        simSpeedSlider.addEventListener('input', (e) => {
+          simSpeedMultiplier = parseFloat(e.target.value);
+          if (simSpeedVal) simSpeedVal.textContent = `${simSpeedMultiplier.toFixed(1)}×`;
+          updateSpeedSliderTrack(simSpeedMultiplier);
+        });
+        updateSpeedSliderTrack(simSpeedMultiplier);
+      }
+
       // --- Life Cycle: Reproduction & Decease Dynamics ---
       let lifecycleEnabled = true;
       let genesisTimer = 0.0;
@@ -1787,6 +2243,96 @@
       const colorIcons = ['🔴', '🟢', '🟡', '🔵'];
       const colorNames = ['Red', 'Green', 'Yellow', 'Blue'];
       const matrixSwatches = [];
+
+      function getSpeciesDotHtml(colorIdx) {
+        const c = colors[colorIdx];
+        const r = Math.round(c[0] * 255);
+        const g = Math.round(c[1] * 255);
+        const b = Math.round(c[2] * 255);
+        return `<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:rgb(${r},${g},${b}); box-shadow:0 0 5px rgba(${r},${g},${b},0.85); vertical-align:middle;"></span>`;
+      }
+
+      const colorPresets = {
+        classic: {
+          name: 'Classic',
+          colors: [
+            [0.96, 0.20, 0.24, 1.0], // Red
+            [0.10, 0.88, 0.38, 1.0], // Green
+            [0.98, 0.84, 0.12, 1.0], // Yellow
+            [0.18, 0.60, 0.98, 1.0]  // Blue
+          ]
+        },
+        neon: {
+          name: 'Neon',
+          colors: [
+            [1.00, 0.08, 0.58, 1.0], // Hot Pink
+            [0.00, 0.94, 0.96, 1.0], // Cyan
+            [0.46, 1.00, 0.12, 1.0], // Lime
+            [0.68, 0.24, 1.00, 1.0]  // Violet
+          ]
+        },
+        pastel: {
+          name: 'Pastel',
+          colors: [
+            [1.00, 0.52, 0.58, 1.0], // Peach Coral
+            [0.44, 0.90, 0.72, 1.0], // Mint
+            [0.99, 0.86, 0.42, 1.0], // Butter Cream
+            [0.48, 0.74, 0.98, 1.0]  // Baby Sky
+          ]
+        },
+        sunset: {
+          name: 'Sunset',
+          colors: [
+            [0.94, 0.18, 0.30, 1.0], // Crimson
+            [1.00, 0.50, 0.10, 1.0], // Flame
+            [1.00, 0.82, 0.14, 1.0], // Amber Gold
+            [0.62, 0.16, 0.70, 1.0]  // Deep Plum
+          ]
+        },
+        glacier: {
+          name: 'Glacier',
+          colors: [
+            [0.08, 0.64, 0.72, 1.0], // Deep Teal
+            [0.42, 0.94, 0.82, 1.0], // Arctic Mint
+            [0.88, 0.94, 0.98, 1.0], // Frost Silver
+            [0.24, 0.46, 0.92, 1.0]  // Ultramarine
+          ]
+        },
+        earth: {
+          name: 'Earth',
+          colors: [
+            [0.84, 0.34, 0.24, 1.0], // Terracotta
+            [0.18, 0.74, 0.38, 1.0], // Fern
+            [0.90, 0.70, 0.28, 1.0], // Ochre
+            [0.22, 0.48, 0.58, 1.0]  // Slate Moss
+          ]
+        }
+      };
+
+      let currentColorPresetKey = 'classic';
+
+      function applyColorPreset(presetKey) {
+        const p = colorPresets[presetKey];
+        if (!p) return;
+        currentColorPresetKey = presetKey;
+        for (let c = 0; c < 4; c++) {
+          colors[c][0] = p.colors[c][0];
+          colors[c][1] = p.colors[c][1];
+          colors[c][2] = p.colors[c][2];
+          colors[c][3] = p.colors[c][3];
+        }
+        for (let i = 0; i < tiles.length; i++) {
+          tiles[i].color = colors[tiles[i].colorIndex];
+        }
+        document.querySelectorAll('#color-palette-buttons button[data-color-preset]').forEach(btn => {
+          btn.classList.toggle('active', btn.getAttribute('data-color-preset') === presetKey);
+        });
+        const badge = document.getElementById('palette-name-badge');
+        if (badge) badge.textContent = p.name;
+        buildMatrixTable();
+        updateZoneBadges();
+        updatePopulationStats();
+      }
 
       function getCellBg(val) {
         if (val > 0.05) {
@@ -1813,7 +2359,7 @@
         for (let c = 0; c < 4; c++) {
           const th = document.createElement('th');
           th.title = `Target: ${colorNames[c]}`;
-          th.innerHTML = colorIcons[c];
+          th.innerHTML = getSpeciesDotHtml(c);
           hRow.appendChild(th);
         }
         thead.appendChild(hRow);
@@ -1827,7 +2373,7 @@
           const tr = document.createElement('tr');
           const th = document.createElement('th');
           th.title = `Source: ${colorNames[r]}`;
-          th.innerHTML = colorIcons[r];
+          th.innerHTML = getSpeciesDotHtml(r);
           tr.appendChild(th);
 
           matrixSwatches[r] = [];
@@ -1874,23 +2420,47 @@
       }
 
       const presets = {
-        chase: [
-          [ 0.40,  1.00, -0.50, -1.00 ],
-          [ -1.00, 0.40,  1.00, -0.50 ],
-          [ -0.50, -1.00, 0.40,  1.00 ],
-          [  1.00, -0.50, -1.00, 0.40 ]
-        ],
         tribes: [
           [  1.00, -0.90, -0.90, -0.90 ],
           [ -0.90,  1.00, -0.90, -0.90 ],
           [ -0.90, -0.90,  1.00, -0.90 ],
           [ -0.90, -0.90, -0.90,  1.00 ]
         ],
+        chase: [
+          [ 0.40,  1.00, -0.50, -1.00 ],
+          [ -1.00, 0.40,  1.00, -0.50 ],
+          [ -0.50, -1.00, 0.40,  1.00 ],
+          [  1.00, -0.50, -1.00, 0.40 ]
+        ],
         predator: [
           [  0.30,  1.00, -0.20, -1.00 ],
           [ -1.00,  0.30,  0.00, -0.20 ],
           [ -0.20,  0.00,  0.30,  1.00 ],
           [  1.00, -0.20, -1.00,  0.30 ]
+        ],
+        symbiosis: [
+          [  0.35,  1.00, -0.85, -0.85 ],
+          [  1.00,  0.35, -0.85, -0.85 ],
+          [ -0.85, -0.85,  0.35,  1.00 ],
+          [ -0.85, -0.85,  1.00,  0.35 ]
+        ],
+        vortex: [
+          [  0.20,  1.00,  0.00, -1.00 ],
+          [ -1.00,  0.20,  1.00,  0.00 ],
+          [  0.00, -1.00,  0.20,  1.00 ],
+          [  1.00,  0.00, -1.00,  0.20 ]
+        ],
+        alliances: [
+          [  0.80,  0.80, -1.00, -1.00 ],
+          [  0.80,  0.80, -1.00, -1.00 ],
+          [ -1.00, -1.00,  0.80,  0.80 ],
+          [ -1.00, -1.00,  0.80,  0.80 ]
+        ],
+        swarm: [
+          [  0.75,  0.55,  0.55,  0.55 ],
+          [  0.55,  0.75,  0.55,  0.55 ],
+          [  0.55,  0.55,  0.75,  0.55 ],
+          [  0.55,  0.55,  0.55,  0.75 ]
         ],
         chaos: [
           [ -0.50,  1.00, -0.90,  0.80 ],
@@ -1906,7 +2476,43 @@
         ]
       };
 
-      function setActivePreset(presetKey) {
+      const PRESET_CYCLE_ORDER = ['tribes', 'chase', 'predator', 'symbiosis', 'vortex', 'alliances', 'swarm', 'chaos'];
+      const PRESET_LABELS = {
+        tribes: 'TRIBES',
+        chase: 'CHASE',
+        predator: 'PREDATOR',
+        symbiosis: 'SYMBIOSIS',
+        vortex: 'VORTEX',
+        alliances: 'ALLIANCES',
+        swarm: 'SWARM',
+        chaos: 'CHAOS',
+        random: 'RANDOM',
+        zero: 'NEUTRAL'
+      };
+      let currentPresetKey = 'tribes';
+      let presetSuccessSmoothed = 0.0;
+      let presetTimeInMode = 0.0;
+      let toastTimeout = null;
+
+      const presetHudNameEl = document.getElementById('preset-hud-name');
+      const presetHudPctEl = document.getElementById('preset-hud-pct');
+      const presetHudBarEl = document.getElementById('preset-hud-bar');
+      const presetToastEl = document.getElementById('preset-toast');
+
+      function showPresetToast(label) {
+        if (!presetToastEl) return;
+        presetToastEl.textContent = `⚡ Preset Cycled: ${label}`;
+        presetToastEl.classList.add('show');
+        if (toastTimeout) clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+          presetToastEl.classList.remove('show');
+        }, 2400);
+      }
+
+      function setActivePreset(presetKey, showNotification = false) {
+        currentPresetKey = presetKey;
+        presetSuccessSmoothed = 0.0;
+        presetTimeInMode = 0.0;
         document.querySelectorAll('.preset-row .preset-btn').forEach(b => {
           if (presetKey && b.getAttribute('data-preset') === presetKey) {
             b.classList.add('active');
@@ -1914,12 +2520,86 @@
             b.classList.remove('active');
           }
         });
+        const label = presetKey ? (PRESET_LABELS[presetKey] || presetKey.toUpperCase()) : 'CUSTOM';
+        if (presetHudNameEl) presetHudNameEl.textContent = label;
+        if (presetHudPctEl) presetHudPctEl.textContent = '0%';
+        if (presetHudBarEl) presetHudBarEl.style.width = '0%';
+        if (showNotification) showPresetToast(label);
       }
 
-      document.querySelectorAll('.preset-row .preset-btn').forEach(btn => {
+      function updatePresetProgress(dt) {
+        presetTimeInMode += dt;
+        const count = tiles.length;
+        if (count === 0) return;
+
+        // Evaluate how well tiles currently satisfy the active force matrix & swarm flow (0..100%)
+        let satisfiedSum = 0;
+        let activeSamples = 0;
+        const stepSample = Math.max(1, Math.floor(count / 240));
+
+        for (let i = 0; i < count; i += stepSample) {
+          const t = tiles[i];
+          if (!t || t.isDying) continue;
+          activeSamples++;
+
+          const fGrid = faceGrids[t.face];
+          let localScore = 0;
+          let friendNear = 0;
+          let enemyNear = 0;
+
+          const rMinU = Math.max(0, t.u - 3);
+          const rMaxU = Math.min(subdivisions - 1, t.u + 3);
+          const rMinV = Math.max(0, t.v - 3);
+          const rMaxV = Math.min(subdivisions - 1, t.v + 3);
+
+          for (let nu = rMinU; nu <= rMaxU; nu++) {
+            const colArr = fGrid[nu];
+            for (let nv = rMinV; nv <= rMaxV; nv++) {
+              const oid = colArr[nv];
+              if (oid === -1 || oid === t.id) continue;
+              const o = tileById.get(oid);
+              if (!o) continue;
+              const aff = colorMatrix[t.colorIndex][o.colorIndex];
+              if (aff > 0.15) friendNear += aff;
+              else if (aff < -0.15) enemyNear += Math.abs(aff);
+            }
+          }
+
+          if (currentPresetKey === 'zero') {
+            localScore = t.isMoving ? 0.85 : 0.45;
+          } else {
+            // Reward having positively-attracted targets/kin nearby while avoiding repelled enemies, plus active pack motion
+            const socialFit = Math.min(1.0, friendNear * 0.36) * (1.0 / (1.0 + enemyNear * 0.25));
+            const motionFit = (t.isMoving || (t.lastDrive || 0) > 1.2) ? 0.35 : 0.10;
+            localScore = Math.min(1.0, socialFit * 0.78 + motionFit);
+          }
+          satisfiedSum += localScore;
+        }
+
+        const rawPct = activeSamples > 0 ? (satisfiedSum / activeSamples) * 100.0 : 0.0;
+        // Ramp gently over ~14 seconds so the user can enjoy the preset formation building up to ~80%+
+        const timeRamp = Math.min(1.0, presetTimeInMode / 14.0);
+        const targetPct = Math.min(99.0, rawPct * 0.72 + timeRamp * 28.0);
+        presetSuccessSmoothed += (targetPct - presetSuccessSmoothed) * Math.min(1.0, dt * 1.8);
+
+        const dispPct = Math.round(presetSuccessSmoothed);
+        if (presetHudPctEl) presetHudPctEl.textContent = `${dispPct}%`;
+        if (presetHudBarEl) presetHudBarEl.style.width = `${ Math.min(100, dispPct) }%`;
+
+        // Once preset reaches >= 80% success (and has run for at least 12s), cycle to the next preset!
+        if (presetSuccessSmoothed >= 80.0 && presetTimeInMode >= 12.0) {
+          const curIdx = PRESET_CYCLE_ORDER.indexOf(currentPresetKey);
+          const nextIdx = (curIdx + 1) % PRESET_CYCLE_ORDER.length;
+          const nextKey = PRESET_CYCLE_ORDER[nextIdx];
+          setActivePreset(nextKey, true);
+          applyMatrixPreset(presets[nextKey]);
+        }
+      }
+
+      document.querySelectorAll('.preset-row button[data-preset]').forEach(btn => {
         btn.addEventListener('click', (e) => {
           const key = btn.getAttribute('data-preset');
-          setActivePreset(key);
+          setActivePreset(key, true);
           if (key === 'random') {
             const randMat = [];
             for (let r = 0; r < 4; r++) {
@@ -1936,10 +2616,19 @@
           }
         });
       });
-      setActivePreset('chase');
+      setActivePreset('tribes', false);
+
+      document.querySelectorAll('#color-palette-buttons button[data-color-preset]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const key = btn.getAttribute('data-color-preset');
+          applyColorPreset(key);
+        });
+      });
 
       const toggleBalanceBtn = document.getElementById('toggle-balance-btn');
       if (toggleBalanceBtn) {
+        toggleBalanceBtn.textContent = balanceEnabled ? '\u2696\uFE0F Balance: ON' : '\u2696\uFE0F Balance: OFF';
+        toggleBalanceBtn.style.color = balanceEnabled ? '#0284c7' : '#94a3b8';
         toggleBalanceBtn.addEventListener('click', () => {
           balanceEnabled = !balanceEnabled;
           toggleBalanceBtn.textContent = balanceEnabled ? '\u2696\uFE0F Balance: ON' : '\u2696\uFE0F Balance: OFF';
@@ -1958,7 +2647,7 @@
           const btn = document.createElement('button');
           btn.className = 'zone-btn';
           const lvl = ZONE_LEVELS[colorVerticalIdx[c]];
-          btn.innerHTML = `${colorIcons[c]} ${lvl.label}`;
+          btn.innerHTML = `${getSpeciesDotHtml(c)} ${lvl.label}`;
           btn.title = `${colorNames[c]}: ${lvl.label} (${lvl.val !== null ? (lvl.val > 0 ? '+' : '') + lvl.val.toFixed(1) : 'No bias'})\nClick to cycle level`;
           btn.addEventListener('click', () => {
             colorVerticalIdx[c] = (colorVerticalIdx[c] + 1) % ZONE_LEVELS.length;
@@ -1991,13 +2680,20 @@
 
         const totalCapacity = 6 * subdivisions * subdivisions;
         const targetPop = Math.round(0.25 * totalCapacity);
-        const maxPop = Math.round(targetPop * 1.10);
-        const minPop = Math.max(30, Math.round(targetPop * 0.85));
+        const targetPerSpecies = Math.round(targetPop / 4);
+        const maxPerSpecies = Math.round(targetPerSpecies * 1.06);
+        const minPerSpecies = Math.max(12, Math.round(targetPerSpecies * 0.94));
 
         tileById.clear();
+        const speciesCounts = [0, 0, 0, 0];
         for (let i = 0; i < tiles.length; i++) {
-          tileById.set(tiles[i].id, tiles[i]);
+          const t = tiles[i];
+          tileById.set(t.id, t);
+          if (!t.isDying) speciesCounts[t.colorIndex]++;
         }
+
+        const skyTopFace = getSkyTopFace();
+        const groundBotFace = getGroundBotFace();
 
         for (let i = 0; i < tiles.length; i++) {
           const t = tiles[i];
@@ -2025,26 +2721,9 @@
           }
 
           t.age += dt;
+          if (t.stuckTimer === undefined) t.stuckTimer = 0.0;
 
-          // Ambient nourishment: tiles thrive and gain energy when in their preferred vertical strata!
-          if (verticalBuoyancyEnabled) {
-            const targetY = colorVerticalPref[t.colorIndex];
-            if (targetY !== null && targetY !== undefined) {
-              const curY = rotateVecByQuat(getCellCenter(t.face, t.u, t.v), quat)[1];
-              const zoneDist = Math.abs(curY - targetY);
-              if (zoneDist < 4.0) {
-                t.energy = Math.min(2.0, t.energy + dt * 0.12); // thriving in preferred zone!
-              } else {
-                t.energy -= dt * 0.005; // very gentle attrition when far from home
-              }
-            } else {
-              t.energy = Math.min(2.0, t.energy + dt * 0.06);
-            }
-          } else {
-            t.energy = Math.min(2.0, t.energy + dt * 0.06);
-          }
-
-          // Check 4-connected neighbors on face
+          // Check 4-connected neighbors on face (only replace stuck or completely suffocated tiles)
           let sameCount = 0;
           let totalNeighbors = 0;
           const freeNeighbors = [];
@@ -2058,37 +2737,32 @@
               if (nid !== -1) {
                 totalNeighbors++;
                 const nTile = tileById.get(nid);
-                if (nTile) {
-                  if (nTile.colorIndex === t.colorIndex) sameCount++;
-                  // Predation: if species t attacks nTile
-                  const preyAffinity = colorMatrix[t.colorIndex][nTile.colorIndex];
-                  if (preyAffinity > 0.40) {
-                    t.energy = Math.min(2.0, t.energy + dt * 0.30);
-                    nTile.energy -= dt * 0.25;
-                  }
-                }
+                if (nTile && nTile.colorIndex === t.colorIndex) sameCount++;
               } else {
                 freeNeighbors.push({ face: t.face, u: nu, v: nv });
               }
             }
           }
 
-          // Only extreme overcrowding causes suffocation
-          if (totalNeighbors >= 5) {
-            t.energy -= dt * 0.16;
+          // Calm population homeostasis: only recycle tiles that are completely boxed in / stuck for a long time
+          if (totalNeighbors === 4 || t.stuckTimer > 5.0) {
+            t.energy -= dt * 0.18;
+          } else {
+            t.energy = Math.min(1.5, t.energy + dt * 0.12);
           }
 
-          // Natural death trigger (only if starved/depleted)
-          if (t.energy <= 0.0) {
+          if (t.energy <= 0.0 && speciesCounts[t.colorIndex] > minPerSpecies) {
             t.isDying = true;
+            speciesCounts[t.colorIndex]--;
             continue;
           }
 
-          // Reproduction (Kinship mating) - accessible threshold so population naturally grows
-          if (!t.isMoving && t.energy > 0.85 && sameCount >= 1 && freeNeighbors.length > 0) {
-            if (tiles.length < maxPop && pseudoRandom() < 0.22 * dt * sameCount) {
+          // Calm reproduction: replace missing population near kin when below target species count
+          if (!t.isMoving && t.energy > 0.9 && sameCount >= 1 && freeNeighbors.length > 0 && speciesCounts[t.colorIndex] < maxPerSpecies) {
+            const deficitBoost = speciesCounts[t.colorIndex] < targetPerSpecies ? 2.5 : 0.35;
+            if (pseudoRandom() < 0.18 * dt * deficitBoost) {
               const pick = freeNeighbors[Math.floor(pseudoRandom() * freeNeighbors.length)];
-              t.energy -= 0.35;
+              t.energy -= 0.25;
               const newId = tileIdCounter++;
               faceGrids[pick.face][pick.u][pick.v] = newId;
               const newTile = {
@@ -2099,6 +2773,9 @@
                 fromFace: pick.face,
                 fromU: pick.u,
                 fromV: pick.v,
+                prevFace: -1,
+                prevU: -1,
+                prevV: -1,
                 targetFace: pick.face,
                 targetU: pick.u,
                 targetV: pick.v,
@@ -2107,6 +2784,10 @@
                 moveSpeed: COLOR_BASE_SPEEDS[t.colorIndex] + pseudoRandom() * 0.4,
                 waitTimer: COLOR_WAIT_RANGES[t.colorIndex][0] + pseudoRandom() * (COLOR_WAIT_RANGES[t.colorIndex][1] - COLOR_WAIT_RANGES[t.colorIndex][0]),
                 dir: pseudoRandom() > 0.5 ? [1, 0] : [0, 1],
+                vx: t.vx || 0,
+                vy: t.vy || 0,
+                vz: t.vz || 0,
+                stuckTimer: 0.0,
                 colorIndex: t.colorIndex,
                 color: colors[t.colorIndex],
                 energy: 1.0,
@@ -2118,56 +2799,65 @@
               };
               tiles.push(newTile);
               tileById.set(newId, newTile);
+              speciesCounts[t.colorIndex]++;
             }
           }
         }
 
-        // Resilient population safety governor: auto-replenishment if population drops below minPop
-        if (tiles.length < minPop) {
-          genesisTimer += dt;
-          if (genesisTimer > 0.25) {
-            genesisTimer = 0.0;
-            const counts = [0, 0, 0, 0];
-            for (let k = 0; k < tiles.length; k++) counts[tiles[k].colorIndex]++;
-            let minCol = 0;
-            for (let c = 1; c < 4; c++) {
-              if (counts[c] < counts[minCol]) minCol = c;
-            }
-            for (let attempt = 0; attempt < 25; attempt++) {
-              const rf = Math.floor(pseudoRandom() * 6);
-              const ru = Math.floor(pseudoRandom() * subdivisions);
-              const rv = Math.floor(pseudoRandom() * subdivisions);
-              if (faceGrids[rf][ru][rv] === -1) {
-                const newId = tileIdCounter++;
-                faceGrids[rf][ru][rv] = newId;
-                const newTile = {
-                  id: newId,
-                  face: rf,
-                  u: ru,
-                  v: rv,
-                  fromFace: rf,
-                  fromU: ru,
-                  fromV: rv,
-                  targetFace: rf,
-                  targetU: ru,
-                  targetV: rv,
-                  isMoving: false,
-                  progress: 0.0,
-                  moveSpeed: COLOR_BASE_SPEEDS[minCol] + pseudoRandom() * 0.4,
-                  waitTimer: COLOR_WAIT_RANGES[minCol][0] + pseudoRandom() * (COLOR_WAIT_RANGES[minCol][1] - COLOR_WAIT_RANGES[minCol][0]),
-                  dir: pseudoRandom() > 0.5 ? [1, 0] : [0, 1],
-                  colorIndex: minCol,
-                  color: colors[minCol],
-                  energy: 1.1,
-                  age: 0.0,
-                  scale: 0.1,
-                  isDying: false,
-                  isSpawning: true,
-                  recentHistory: []
-                };
-                tiles.push(newTile);
-                tileById.set(newId, newTile);
-                break;
+        // Steady per-species governor: keep all 4 species populations balanced & calm
+        genesisTimer += dt;
+        if (genesisTimer > 0.18) {
+          genesisTimer = 0.0;
+          for (let c = 0; c < 4; c++) {
+            if (speciesCounts[c] < minPerSpecies) {
+              const zIdx = colorVerticalIdx[c];
+              const lvl = ZONE_LEVELS[zIdx];
+              for (let attempt = 0; attempt < 25; attempt++) {
+                let rf = Math.floor(pseudoRandom() * 6);
+                if (verticalBuoyancyEnabled && lvl) {
+                  if (lvl.type === 'top') rf = skyTopFace;
+                  else if (lvl.type === 'bot') rf = groundBotFace;
+                }
+                const ru = Math.floor(pseudoRandom() * subdivisions);
+                const rv = Math.floor(pseudoRandom() * subdivisions);
+                if (faceGrids[rf][ru][rv] === -1) {
+                  const newId = tileIdCounter++;
+                  faceGrids[rf][ru][rv] = newId;
+                  const newTile = {
+                    id: newId,
+                    face: rf,
+                    u: ru,
+                    v: rv,
+                    fromFace: rf,
+                    fromU: ru,
+                    fromV: rv,
+                    prevFace: -1,
+                    prevU: -1,
+                    prevV: -1,
+                    targetFace: rf,
+                    targetU: ru,
+                    targetV: rv,
+                    isMoving: false,
+                    progress: 0.0,
+                    moveSpeed: COLOR_BASE_SPEEDS[c] + pseudoRandom() * 0.4,
+                    waitTimer: COLOR_WAIT_RANGES[c][0] + pseudoRandom() * (COLOR_WAIT_RANGES[c][1] - COLOR_WAIT_RANGES[c][0]),
+                    dir: pseudoRandom() > 0.5 ? [1, 0] : [0, 1],
+                    vx: 0, vy: 0, vz: 0,
+                    stuckTimer: 0.0,
+                    colorIndex: c,
+                    color: colors[c],
+                    energy: 1.1,
+                    age: 0.0,
+                    scale: 0.1,
+                    isDying: false,
+                    isSpawning: true,
+                    recentHistory: []
+                  };
+                  tiles.push(newTile);
+                  tileById.set(newId, newTile);
+                  speciesCounts[c]++;
+                  break;
+                }
               }
             }
           }
@@ -2238,6 +2928,104 @@
         return { targetFace: f2, targetU: u2, targetV: v2, nextDir: nextDir };
       }
 
+      // Pre-allocated scratch buffers for zero-GC 60 FPS simulation
+      const _surfOut = { dir: [0, 0, 0], dist: 0 };
+      const _faceBins = Array.from({length: 6}, () =>
+        Array.from({length: 9}, () =>
+          Array.from({length: 4}, () => ({
+            count: 0,
+            sumX: 0, sumY: 0, sumZ: 0,
+            sumVx: 0, sumVy: 0, sumVz: 0,
+            p: [0, 0, 0],
+            v: [0, 0, 0]
+          }))
+        )
+      );
+      const _specFx = new Float64Array(4);
+      const _specFy = new Float64Array(4);
+      const _specFz = new Float64Array(4);
+      const _specW  = new Float64Array(4);
+
+      // Fast geodesic surface vector and distance along cube exterior (zero heap allocations)
+      // Writes into _surfOut = { dir: [vx, vy, vz], dist } where dir is strictly in the tangent plane of f1
+      function getSurfaceVector(f1, p1, f2, p2) {
+        if (f1 === f2) {
+          const dx = p2[0] - p1[0];
+          const dy = p2[1] - p1[1];
+          const dz = p2[2] - p1[2];
+          const dist = Math.hypot(dx, dy, dz);
+          _surfOut.dist = dist;
+          if (dist > 1e-4) {
+            const inv = 1.0 / dist;
+            _surfOut.dir[0] = dx * inv;
+            _surfOut.dir[1] = dy * inv;
+            _surfOut.dir[2] = dz * inv;
+          } else {
+            _surfOut.dir[0] = 0; _surfOut.dir[1] = 0; _surfOut.dir[2] = 0;
+          }
+          return _surfOut;
+        }
+        const b1 = faceBases[f1];
+        const n1 = b1.n;
+        if (f2 !== (f1 ^ 1)) {
+          // Adjacent face (shares an edge)
+          const n2 = faceBases[f2].n;
+          // Edge direction E = n1 x n2
+          const Ex = n1[1] * n2[2] - n1[2] * n2[1];
+          const Ey = n1[2] * n2[0] - n1[0] * n2[2];
+          const Ez = n1[0] * n2[1] - n1[1] * n2[0];
+          // Distance from p1 to edge on face 1
+          const d1 = HALF - (p1[0] * n2[0] + p1[1] * n2[1] + p1[2] * n2[2]);
+          // Distance from edge to p2 on face 2
+          const d2 = HALF - (p2[0] * n1[0] + p2[1] * n1[1] + p2[2] * n1[2]);
+          const dPerp = (d1 > 0 ? d1 : 0) + (d2 > 0 ? d2 : 0);
+          const dPar = (p2[0] - p1[0]) * Ex + (p2[1] - p1[1]) * Ey + (p2[2] - p1[2]) * Ez;
+          const dist = Math.hypot(dPerp, dPar);
+          _surfOut.dist = dist;
+          if (dist < 1e-4) {
+            _surfOut.dir[0] = 0; _surfOut.dir[1] = 0; _surfOut.dir[2] = 0;
+            return _surfOut;
+          }
+          const inv = 1.0 / dist;
+          _surfOut.dir[0] = (n2[0] * dPerp + Ex * dPar) * inv;
+          _surfOut.dir[1] = (n2[1] * dPerp + Ey * dPar) * inv;
+          _surfOut.dir[2] = (n2[2] * dPerp + Ez * dPar) * inv;
+          return _surfOut;
+        } else {
+          // Opposite face: 4 possible intermediate unfolding directions
+          let bestDist = Infinity;
+          let bestVx = 0, bestVy = 0, bestVz = 0;
+          for (let m = 0; m < 4; m++) {
+            const sign = (m & 1) ? -1 : 1;
+            const baseVec = (m < 2) ? b1.tu : b1.tv;
+            const cm0 = baseVec[0] * sign;
+            const cm1 = baseVec[1] * sign;
+            const cm2 = baseVec[2] * sign;
+            const Ex = n1[1] * cm2 - n1[2] * cm1;
+            const Ey = n1[2] * cm0 - n1[0] * cm2;
+            const Ez = n1[0] * cm1 - n1[1] * cm0;
+            const d1 = HALF - (p1[0] * cm0 + p1[1] * cm1 + p1[2] * cm2);
+            const d2 = HALF + (p2[0] * cm0 + p2[1] * cm1 + p2[2] * cm2);
+            const dPerp = (d1 > 0 ? d1 : 0) + 2.0 * HALF + (d2 > 0 ? d2 : 0);
+            const dPar = (p2[0] - p1[0]) * Ex + (p2[1] - p1[1]) * Ey + (p2[2] - p1[2]) * Ez;
+            const dist = Math.hypot(dPerp, dPar);
+            if (dist < bestDist) {
+              bestDist = dist;
+              bestVx = cm0 * dPerp + Ex * dPar;
+              bestVy = cm1 * dPerp + Ey * dPar;
+              bestVz = cm2 * dPerp + Ez * dPar;
+            }
+          }
+          const vlen = Math.hypot(bestVx, bestVy, bestVz) || 1;
+          const inv = 1.0 / vlen;
+          _surfOut.dir[0] = bestVx * inv;
+          _surfOut.dir[1] = bestVy * inv;
+          _surfOut.dir[2] = bestVz * inv;
+          _surfOut.dist = bestDist;
+          return _surfOut;
+        }
+      }
+
       // Update simulation: 3D tiles navigate up/down/left/right and cross cube faces
       function updateTileSimulation(dt) {
         statsTimer += dt;
@@ -2253,125 +3041,365 @@
             tileById.set(tiles[i].id, tiles[i]);
           }
         } else {
-          // Step biological life cycle (birth, death, metabolism, predation)
+          // Step biological life cycle (calm population homeostasis)
           updateLifeCycle(dt);
         }
 
         const count = tiles.length;
+
+        // 0. Reset and populate pre-allocated 3x3 per-face, per-species spatial bins (zero heap allocations)
+        for (let f = 0; f < 6; f++) {
+          const fBins = _faceBins[f];
+          for (let binIdx = 0; binIdx < 9; binIdx++) {
+            const bArr = fBins[binIdx];
+            for (let c = 0; c < 4; c++) {
+              const bin = bArr[c];
+              bin.count = 0;
+              bin.sumX = 0; bin.sumY = 0; bin.sumZ = 0;
+              bin.sumVx = 0; bin.sumVy = 0; bin.sumVz = 0;
+            }
+          }
+        }
+
+        const invSub3 = 3.0 / subdivisions;
+        for (let i = 0; i < count; i++) {
+          const tile = tiles[i];
+          if (!tile || tile.isDying) continue;
+          const b = faceBases[tile.face];
+          const uCoord = -HALF + (tile.u + 0.5) * step;
+          const vCoord = -HALF + (tile.v + 0.5) * step;
+          const px = uCoord * b.tu[0] + vCoord * b.tv[0] + HALF * b.n[0];
+          const py = uCoord * b.tu[1] + vCoord * b.tv[1] + HALF * b.n[1];
+          const pz = uCoord * b.tu[2] + vCoord * b.tv[2] + HALF * b.n[2];
+          tile._px = px;
+          tile._py = py;
+          tile._pz = pz;
+
+          const bu = tile.u * invSub3 < 1 ? 0 : (tile.u * invSub3 < 2 ? 1 : 2);
+          const bv = tile.v * invSub3 < 1 ? 0 : (tile.v * invSub3 < 2 ? 1 : 2);
+          const bin = _faceBins[tile.face][bv * 3 + bu][tile.colorIndex];
+          bin.sumX += px;
+          bin.sumY += py;
+          bin.sumZ += pz;
+          bin.sumVx += (tile.vx || 0);
+          bin.sumVy += (tile.vy || 0);
+          bin.sumVz += (tile.vz || 0);
+          bin.count++;
+        }
+
+        for (let f = 0; f < 6; f++) {
+          const fBins = _faceBins[f];
+          for (let binIdx = 0; binIdx < 9; binIdx++) {
+            const bArr = fBins[binIdx];
+            for (let c = 0; c < 4; c++) {
+              const bin = bArr[c];
+              if (bin.count > 0) {
+                const inv = 1.0 / bin.count;
+                bin.p[0] = bin.sumX * inv;
+                bin.p[1] = bin.sumY * inv;
+                bin.p[2] = bin.sumZ * inv;
+                bin.v[0] = bin.sumVx * inv;
+                bin.v[1] = bin.sumVy * inv;
+                bin.v[2] = bin.sumVz * inv;
+              }
+            }
+          }
+        }
+
+        // Camera-to-cube inverse orientation vector for "UP" (skyward) in local cube coordinates
+        const qInv = [-quat[0], -quat[1], -quat[2], quat[3]];
+        const upCube = rotateVecByQuat([0, 1, 0], qInv);
+
+        // Local grid window radius (fast O(1) lookup on faceGrids)
+        const localR = Math.min(8, Math.max(6, Math.floor(subdivisions * 0.25)));
+        const maxInteractR = Math.max(10.0, Math.min(26.0, subdivisions * 0.52));
+        const rCore = 1.85; // Universal short-range personal space repulsion radius
+        const pSelf = [0, 0, 0];
+
         for (let i = 0; i < count; i++) {
           const t = tiles[i];
           if (!t || t.isDying) continue;
 
-          // Decay recent position lockouts
+          // Decay short anti-oscillation history in-place (zero array allocations per frame)
           if (t.recentHistory && t.recentHistory.length > 0) {
+            let writeIdx = 0;
             for (let h = 0; h < t.recentHistory.length; h++) {
               t.recentHistory[h].timer -= dt;
+              if (t.recentHistory[h].timer > 0) {
+                t.recentHistory[writeIdx++] = t.recentHistory[h];
+              }
             }
-            t.recentHistory = t.recentHistory.filter(h => h.timer > 0);
+            t.recentHistory.length = writeIdx;
           } else if (!t.recentHistory) {
             t.recentHistory = [];
           }
 
+          // Smooth exponential decay of surface wake trails every frame
+          const trailDecay = Math.exp(-dt * 2.8);
+          if (t.trailAlpha > 0)  t.trailAlpha  = t.trailAlpha  * trailDecay;
+          if (t.trail2Alpha > 0) t.trail2Alpha = t.trail2Alpha * trailDecay;
+          if (t.trail3Alpha > 0) t.trail3Alpha = t.trail3Alpha * trailDecay;
+
           if (t.isMoving) {
             t.progress += dt * t.moveSpeed;
             if (t.progress >= 1.0) {
+              const overflow = Math.min(0.42, t.progress - 1.0);
               t.progress = 1.0;
               // Release old grid cell on origin face
               faceGrids[t.fromFace][t.fromU][t.fromV] = -1;
-              // Lock previous (n-1) cell from being re-entered for at least 5.5 seconds
-              if (!t.recentHistory) t.recentHistory = [];
+
+              // Strictly record n-1 location
+              t.prevFace = t.fromFace;
+              t.prevU = t.fromU;
+              t.prevV = t.fromV;
+
+              // Shift 3-stage tapering surface wake (n-3 <- n-2 <- n-1)
+              t.trail3Face = t.trail2Face !== undefined ? t.trail2Face : -1;
+              t.trail3U = t.trail2U;
+              t.trail3V = t.trail2V;
+              t.trail3Alpha = (t.trail2Alpha || 0) * 0.78;
+
+              t.trail2Face = t.trailFace !== undefined ? t.trailFace : -1;
+              t.trail2U = t.trailU;
+              t.trail2V = t.trailV;
+              t.trail2Alpha = (t.trailAlpha || 0) * 0.82;
+
+              t.trailFace = t.fromFace;
+              t.trailU = t.fromU;
+              t.trailV = t.fromV;
+              t.trailNextFace = t.targetFace;
+              t.trailNextU = t.targetU;
+              t.trailNextV = t.targetV;
+              t.trailAlpha = 0.24;
+
+              // Brief 2-cell memory to prevent 3-step triangle loops, while allowing fallback if boxed in
               t.recentHistory.push({
                 face: t.fromFace,
                 u: t.fromU,
                 v: t.fromV,
-                timer: 5.5
+                timer: 0.75
               });
-              if (t.recentHistory.length > 8) {
+              if (t.recentHistory.length > 2) {
                 t.recentHistory.shift();
               }
+
               // Commit arrival on target face and cell
               t.face = t.targetFace;
               t.u = t.targetU;
               t.v = t.targetV;
               faceGrids[t.face][t.u][t.v] = t.id;
+              const pNew = getCellCenter(t.face, t.u, t.v);
+              t._px = pNew[0];
+              t._py = pNew[1];
+              t._pz = pNew[2];
               t.isMoving = false;
-              // Species-specific brief pause before choosing next move (reduced when under strong drive)
-              const wR = COLOR_WAIT_RANGES[t.colorIndex];
-              const drive = Math.min(0.75, (t.lastDrive || 0) * 0.12);
-              t.waitTimer = (wR[0] + pseudoRandom() * (wR[1] - wR[0])) * Math.max(0.25, 1.0 - drive);
+              t.stuckTimer = 0.0;
+
+              // Continuous glide: when driven by forces, chain immediately into next cell with zero pause
+              if ((t.lastDrive || 0) > 0.30 || pseudoRandom() < 0.75) {
+                t.waitTimer = 0.0;
+                t._overflow = overflow;
+              } else {
+                const wR = COLOR_WAIT_RANGES[t.colorIndex];
+                t.waitTimer = (wR[0] + pseudoRandom() * (wR[1] - wR[0])) * 0.25;
+                t._overflow = 0.0;
+              }
             }
-          } else {
+          }
+
+          if (!t.isMoving) {
             t.waitTimer -= dt;
             if (t.waitTimer <= 0) {
-              // 1. Compute 3D attraction/repulsion force from nearby neighborhood & global samples
-              const pSelf = getCellCenter(t.face, t.u, t.v);
-              let fx = 0, fy = 0, fz = 0;
+              pSelf[0] = t._px; pSelf[1] = t._py; pSelf[2] = t._pz;
+              const b = faceBases[t.face];
 
-              // Local neighborhood search (cells within +/- 6 on current face)
-              const searchRadius = Math.min(7, Math.max(5, Math.floor(subdivisions * 0.22)));
-              const rU = Math.max(0, t.u - searchRadius);
-              const maxU = Math.min(subdivisions - 1, t.u + searchRadius);
-              const rV = Math.max(0, t.v - searchRadius);
-              const maxV = Math.min(subdivisions - 1, t.v + searchRadius);
+              _specFx[0] = 0; _specFx[1] = 0; _specFx[2] = 0; _specFx[3] = 0;
+              _specFy[0] = 0; _specFy[1] = 0; _specFy[2] = 0; _specFy[3] = 0;
+              _specFz[0] = 0; _specFz[1] = 0; _specFz[2] = 0; _specFz[3] = 0;
+              _specW[0]  = 0; _specW[1]  = 0; _specW[2]  = 0; _specW[3]  = 0;
 
-              for (let nu = rU; nu <= maxU; nu++) {
-                for (let nv = rV; nv <= maxV; nv++) {
-                  const oId = faceGrids[t.face][nu][nv];
+              let sepX = 0, sepY = 0, sepZ = 0;
+              let alignX = 0, alignY = 0, alignZ = 0, alignCount = 0;
+
+              // A. Fast Same-Face Direct Grid Window Search (O(1) array indexing, zero getSurfaceVector overhead)
+              const minU = Math.max(0, t.u - localR);
+              const maxU = Math.min(subdivisions - 1, t.u + localR);
+              const minV = Math.max(0, t.v - localR);
+              const maxV = Math.min(subdivisions - 1, t.v + localR);
+              const fGrid = faceGrids[t.face];
+
+              for (let nu = minU; nu <= maxU; nu++) {
+                const colArr = fGrid[nu];
+                const duGrid = (nu - t.u) * step;
+                for (let nv = minV; nv <= maxV; nv++) {
+                  const oId = colArr[nv];
                   if (oId === -1 || oId === t.id) continue;
                   const o = tileById.get(oId);
                   if (!o || o.isDying) continue;
-                  const weight = colorMatrix[t.colorIndex][o.colorIndex];
-                  if (weight === 0) continue;
-                  const pOther = getCellCenter(o.face, o.u, o.v);
-                  const dx = pOther[0] - pSelf[0];
-                  const dy = pOther[1] - pSelf[1];
-                  const dz = pOther[2] - pSelf[2];
-                  const distSq = dx * dx + dy * dy + dz * dz;
-                  if (distSq > 0.04) {
-                    const dist = Math.sqrt(distSq);
-                    let fMag = 0;
-                    if (weight > 0) {
-                      // Attraction: pulls strongly towards target, sustained across distance
-                      fMag = weight * (3.6 / (1.0 + 0.12 * dist));
-                    } else {
-                      // Repulsion: intense evasion when close, decaying with distance
-                      fMag = weight * (5.2 / Math.max(dist, 0.75));
+
+                  const dvGrid = (nv - t.v) * step;
+                  const distSq = duGrid * duGrid + dvGrid * dvGrid;
+                  if (distSq < 1e-6 || distSq > localR * localR) continue;
+                  const dist = Math.sqrt(distSq);
+
+                  const invDist = 1.0 / dist;
+                  const dirX = (duGrid * b.tu[0] + dvGrid * b.tv[0]) * invDist;
+                  const dirY = (duGrid * b.tu[1] + dvGrid * b.tv[1]) * invDist;
+                  const dirZ = (duGrid * b.tu[2] + dvGrid * b.tv[2]) * invDist;
+
+                  // 1. Universal short-range personal space repulsion (prevents gridlock & static knots)
+                  if (dist < rCore) {
+                    const rep = (1.0 - dist / rCore) * 2.2;
+                    sepX -= dirX * rep;
+                    sepY -= dirY * rep;
+                    sepZ -= dirZ * rep;
+                  }
+
+                  // 2. Particle Life mid-range species interaction kernel
+                  if (dist >= rCore * 0.65) {
+                    const normD = (dist - rCore * 0.65) / (localR - rCore * 0.65);
+                    const kernel = 1.0 - Math.abs(2.0 * normD - 1.0);
+                    if (kernel > 0) {
+                      const kw = kernel / (1.0 + 0.14 * dist);
+                      const oc = o.colorIndex;
+                      _specFx[oc] += dirX * kw;
+                      _specFy[oc] += dirY * kw;
+                      _specFz[oc] += dirZ * kw;
+                      _specW[oc] += kw;
                     }
-                    fx += (dx / dist) * fMag;
-                    fy += (dy / dist) * fMag;
-                    fz += (dz / dist) * fMag;
+                  }
+
+                  // 3. Boids Flocking Alignment with nearby same-species pack members
+                  if (o.colorIndex === t.colorIndex && dist < localR * 0.65 && o.vx !== undefined) {
+                    const alignW = 1.0 - dist / (localR * 0.65);
+                    alignX += o.vx * alignW;
+                    alignY += o.vy * alignW;
+                    alignZ += o.vz * alignW;
+                    alignCount += alignW;
                   }
                 }
               }
 
-              // Plus 16 random samples for long-range inter-face flocking
-              for (let s = 0; s < 16; s++) {
-                const randIdx = Math.floor(pseudoRandom() * count);
-                const o = tiles[randIdx];
-                if (!o || o.id === t.id || o.isDying) continue;
-                const weight = colorMatrix[t.colorIndex][o.colorIndex];
-                if (weight === 0) continue;
-                const pOther = getCellCenter(o.face, o.u, o.v);
-                const dx = pOther[0] - pSelf[0];
-                const dy = pOther[1] - pSelf[1];
-                const dz = pOther[2] - pSelf[2];
-                const distSq = dx * dx + dy * dy + dz * dz;
-                if (distSq > 0.04) {
-                  const dist = Math.sqrt(distSq);
-                  const maxRange = SIZE * 1.8;
-                  if (dist < maxRange) {
-                    const normDist = dist / maxRange;
-                    const fMag = weight * 1.8 * (1.0 - normDist);
-                    fx += (dx / dist) * fMag;
-                    fy += (dy / dist) * fMag;
-                    fz += (dz / dist) * fMag;
+              // B. Fast 3x3 Spatial Bin Sensing Across All 6 Faces (Cross-Edge & Long-Range Swarming)
+              const selfBu = t.u * invSub3 < 1 ? 0 : (t.u * invSub3 < 2 ? 1 : 2);
+              const selfBv = t.v * invSub3 < 1 ? 0 : (t.v * invSub3 < 2 ? 1 : 2);
+              const selfBinIdx = selfBv * 3 + selfBu;
+
+              for (let of = 0; of < 6; of++) {
+                const fBins = _faceBins[of];
+                for (let binIdx = 0; binIdx < 9; binIdx++) {
+                  // Skip same bin on same face (already covered at high resolution by localR grid window)
+                  if (of === t.face && binIdx === selfBinIdx) continue;
+                  const bArr = fBins[binIdx];
+                  for (let c = 0; c < 4; c++) {
+                    const bin = bArr[c];
+                    if (bin.count === 0) continue;
+                    const surf = getSurfaceVector(t.face, pSelf, of, bin.p);
+                    if (surf.dist < 0.5 || surf.dist > maxInteractR * 1.45) continue;
+
+                    // Do not double-count close same-face cells already inside localR
+                    if (of === t.face && surf.dist <= localR * 0.85) continue;
+
+                    const effCount = bin.count < 16 ? bin.count : 16;
+                    const binWeight = (effCount * 0.14) / (1.0 + 0.05 * surf.dist);
+                    _specFx[c] += surf.dir[0] * binWeight;
+                    _specFy[c] += surf.dir[1] * binWeight;
+                    _specFz[c] += surf.dir[2] * binWeight;
+                    _specW[c] += binWeight;
+
+                    // Cross-edge Boids alignment when packmates are just across an adjacent cube edge
+                    if (c === t.colorIndex && of !== t.face && surf.dist < localR * 1.15) {
+                      const edgeAlignW = 0.45 * (1.0 - surf.dist / (localR * 1.15));
+                      alignX += bin.v[0] * edgeAlignW;
+                      alignY += bin.v[1] * edgeAlignW;
+                      alignZ += bin.v[2] * edgeAlignW;
+                      alignCount += edgeAlignW;
+                    }
                   }
                 }
               }
+
+              // Combine per-species normalized force vectors weighted by colorMatrix[t.colorIndex][c]
+              let matFx = sepX * 1.35;
+              let matFy = sepY * 1.35;
+              let matFz = sepZ * 1.35;
+
+              for (let c = 0; c < 4; c++) {
+                const mVal = colorMatrix[t.colorIndex][c];
+                if (Math.abs(mVal) < 0.01 || _specW[c] <= 1e-5) continue;
+                // Sub-linear saturation: prevents 40 same-species neighbors from overwhelming 3 nearby predators/prey
+                const invW = 1.0 / _specW[c];
+                const avgDx = _specFx[c] * invW;
+                const avgDy = _specFy[c] * invW;
+                const avgDz = _specFz[c] * invW;
+                const mag = Math.min(2.6, Math.sqrt(_specW[c]) * 1.15);
+
+                // Asymmetric predator/prey responsiveness: repulsion (fleeing) is extra urgent at close range
+                const urgencyBoost = (mVal < 0) ? 1.25 : 1.0;
+                const sForce = mVal * mag * urgencyBoost * 3.2;
+
+                matFx += avgDx * sForce;
+                matFy += avgDy * sForce;
+                matFz += avgDz * sForce;
+              }
+
+              // Add Boids pack velocity alignment when same-species cohesion is positive
+              const selfAff = colorMatrix[t.colorIndex][t.colorIndex];
+              if (alignCount > 0.01 && selfAff >= 0) {
+                const alen = Math.hypot(alignX, alignY, alignZ) || 1;
+                const flockStrength = (0.45 + 0.55 * selfAff) * 2.1;
+                matFx += (alignX / alen) * flockStrength;
+                matFy += (alignY / alen) * flockStrength;
+                matFz += (alignZ / alen) * flockStrength;
+              }
+
+              // C. Combine Matrix Force (~70% authority) + Vertical Zone Buoyancy (~30% gentle background drift)
+              let totalFx = matFx * forcePowerMultiplier * 2.4;
+              let totalFy = matFy * forcePowerMultiplier * 2.4;
+              let totalFz = matFz * forcePowerMultiplier * 2.4;
+
+              // Camera-space elevation for screen/world sky-top & ground-bot stratification
+              const curY = rotateVecByQuat(pSelf, quat)[1];
+              let desire = 0.0;
+              if (verticalBuoyancyEnabled) {
+                desire = getVerticalDesire(t.colorIndex, t.face, curY);
+                if (Math.abs(desire) > 0.01) {
+                  // Gentle background vertical drift (~30% relative weight vs ~70% matrix chase/flee forces)
+                  const vertStrength = desire * 2.2 * forcePowerMultiplier;
+                  totalFx += upCube[0] * vertStrength;
+                  totalFy += upCube[1] * vertStrength;
+                  totalFz += upCube[2] * vertStrength;
+                }
+              }
+
+              // Project net 3D force onto current face's 2D tangent plane
+              const fDotN = totalFx * b.n[0] + totalFy * b.n[1] + totalFz * b.n[2];
+              const tanFx = totalFx - fDotN * b.n[0];
+              const tanFy = totalFy - fDotN * b.n[1];
+              const tanFz = totalFz - fDotN * b.n[2];
+
+              // Smooth velocity / heading vector (Boids inertia: 72% previous heading + 28% new tangent force)
+              const prevVx = t.vx || 0;
+              const prevVy = t.vy || 0;
+              const prevVz = t.vz || 0;
+              const prevDotN = prevVx * b.n[0] + prevVy * b.n[1] + prevVz * b.n[2];
+              const tanPrevVx = prevVx - prevDotN * b.n[0];
+              const tanPrevVy = prevVy - prevDotN * b.n[1];
+              const tanPrevVz = prevVz - prevDotN * b.n[2];
+
+              t.vx = 0.72 * tanPrevVx + 0.28 * tanFx;
+              t.vy = 0.72 * tanPrevVy + 0.28 * tanFy;
+              t.vz = 0.72 * tanPrevVz + 0.28 * tanFz;
+
+              const vMag = Math.hypot(t.vx, t.vy, t.vz);
+              const normVx = vMag > 1e-4 ? t.vx / vMag : 0;
+              const normVy = vMag > 1e-4 ? t.vy / vMag : 0;
+              const normVz = vMag > 1e-4 ? t.vz / vMag : 0;
 
               // 2. Evaluate all 4 candidate move directions
               const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
-              const candidateMoves = [];
+              const primaryMoves = [];
+              const fallbackMoves = [];
 
               for (let d = 0; d < 4; d++) {
                 const du = dirs[d][0];
@@ -2401,77 +3429,127 @@
                 }
 
                 if (isFree) {
-                  // Check if cell is in recent history lockout (preventing return to n-1 tile for >= 5s)
-                  const isRecent = t.recentHistory.some(h =>
-                    h.timer > 0 && h.face === candTargetFace && h.u === candTargetU && h.v === candTargetV
-                  );
+                  // STRICT INVARIANT: Tiles CANNOT move back to immediate n-1 location (no back-and-forth ping-pong!)
+                  const isImmediateNMinus1 = (t.prevFace !== undefined && t.prevFace !== -1 &&
+                    candTargetFace === t.prevFace && candTargetU === t.prevU && candTargetV === t.prevV);
+                  if (isImmediateNMinus1) {
+                    continue; // Strictly forbidden
+                  }
 
-                  const pDest = getCellCenter(candTargetFace, candTargetU, candTargetV);
-                  const stepX = pDest[0] - pSelf[0];
-                  const stepY = pDest[1] - pSelf[1];
-                  const stepZ = pDest[2] - pSelf[2];
-                  const slen = Math.hypot(stepX, stepY, stepZ) || 1;
-                  // Alignment with 3D attraction/repulsion force vector
-                  const forceAlign = (stepX * fx + stepY * fy + stepZ * fz) / slen;
-
-                  // Weight matrix force heavily so it clearly dominates movement behavior
-                  const forceScore = forceAlign * 3.2;
-
-                  // Vertical Buoyancy Preference: steer towards top, middle, or bottom upon spinning
-                  let vertScore = 0.0;
-                  if (verticalBuoyancyEnabled) {
-                    const targetY = colorVerticalPref[t.colorIndex];
-                    if (targetY !== null && targetY !== undefined) {
-                      const curY = rotateVecByQuat(pSelf, quat)[1];
-                      const destY = rotateVecByQuat(pDest, quat)[1];
-                      const dy = (destY - curY) / slen;
-                      const yErr = targetY - curY;
-                      const desire = Math.max(-1.0, Math.min(1.0, yErr / 3.5));
-                      vertScore = desire * dy * 1.0;
+                  let isRecent = false;
+                  if (t.recentHistory) {
+                    for (let h = 0; h < t.recentHistory.length; h++) {
+                      const rh = t.recentHistory[h];
+                      if (rh.timer > 0 && rh.face === candTargetFace && rh.u === candTargetU && rh.v === candTargetV) {
+                        isRecent = true;
+                        break;
+                      }
                     }
                   }
 
-                  // Momentum persistence
-                  const momentum = (du === t.dir[0] && dv === t.dir[1]) ? 0.25 : 0.0;
-                  const score = forceScore + vertScore + momentum + (pseudoRandom() * 0.10);
-                  candidateMoves.push({
+                  // Direction of candidate step along the current face
+                  const moveDirX = du * b.tu[0] + dv * b.tv[0];
+                  const moveDirY = du * b.tu[1] + dv * b.tv[1];
+                  const moveDirZ = du * b.tu[2] + dv * b.tv[2];
+
+                  // Alignment with smoothed Boids/Particle-Life velocity vector
+                  const velAlign = (moveDirX * normVx + moveDirY * normVy + moveDirZ * normVz) * Math.min(18.0, vMag);
+
+                  // Direct alignment with instantaneous force vector for immediate responsiveness
+                  const instMag = Math.hypot(tanFx, tanFy, tanFz);
+                  const instAlign = instMag > 1e-4
+                    ? ((moveDirX * tanFx + moveDirY * tanFy + moveDirZ * tanFz) / instMag) * Math.min(14.0, instMag)
+                    : 0.0;
+
+                  // Gentle camera-space elevation bonus (supports sky-top / ground-bot drift when climbing around corners)
+                  let vertStepBonus = 0.0;
+                  if (verticalBuoyancyEnabled && Math.abs(desire) > 0.01) {
+                    const pDest = getCellCenter(candTargetFace, candTargetU, candTargetV);
+                    const destY = rotateVecByQuat(pDest, quat)[1];
+                    const dy = Math.max(-1.0, Math.min(1.0, (destY - curY) / step));
+                    vertStepBonus = desire * dy * 3.2 * forcePowerMultiplier;
+                  }
+
+                  // Forward stride continuity (encourages smooth diagonal/curved trajectories rather than zig-zagging)
+                  const strideBonus = (du === t.dir[0] && dv === t.dir[1]) ? 0.55 : 0.0;
+
+                  // Seamless edge-crossing bonus when heading points toward another face
+                  const edgeBonus = (candTargetFace !== t.face) ? 0.45 : 0.0;
+
+                  const score = velAlign * 0.60 + instAlign * 0.40 + vertStepBonus + strideBonus + edgeBonus + (pseudoRandom() * 0.15);
+
+                  const moveObj = {
                     dir: dirs[d],
                     targetFace: candTargetFace,
                     targetU: candTargetU,
                     targetV: candTargetV,
                     nextDir: candNextDir,
-                    score: score,
-                    isRecent: isRecent
-                  });
+                    score: score
+                  };
+
+                  if (!isRecent) {
+                    primaryMoves.push(moveObj);
+                  } else {
+                    fallbackMoves.push(moveObj);
+                  }
                 }
               }
 
-              // Filter out moves that return to the recent / n-1 cells (locked for >= 5s)
-              const allowedMoves = candidateMoves.filter(m => !m.isRecent);
-              const movePool = allowedMoves.length > 0 ? allowedMoves : null;
+              const candidateMoves = primaryMoves.length > 0 ? primaryMoves : fallbackMoves;
 
-              if (movePool && movePool.length > 0) {
-                // Pick candidate with highest attraction/momentum score
-                movePool.sort((a, b) => b.score - a.score);
-                const best = movePool[0];
-                faceGrids[best.targetFace][best.targetU][best.targetV] = t.id;
+              if (candidateMoves.length > 0) {
+                candidateMoves.sort((a, b) => b.score - a.score);
+
+                // Probabilistic steering between #1 and #2 when moving diagonally to a target
+                // Prevents unnatural 90-degree L-shaped stair-stepping and produces organic curved pack trajectories!
+                let chosen = candidateMoves[0];
+                if (candidateMoves.length >= 2 && candidateMoves[0].score > 0.5 && candidateMoves[1].score > 0.25) {
+                  const diff = candidateMoves[0].score - candidateMoves[1].score;
+                  const threshold = Math.max(1.2, Math.abs(candidateMoves[0].score) * 0.38);
+                  if (diff < threshold) {
+                    const pSecond = 0.38 * (1.0 - diff / threshold);
+                    if (pseudoRandom() < pSecond) {
+                      chosen = candidateMoves[1];
+                    }
+                  }
+                }
+
+                // If the tile crosses an edge onto a new face, parallel-transport its velocity vector around the 90° fold
+                if (chosen.targetFace !== t.face) {
+                  const n1 = faceBases[t.face].n;
+                  const n2 = faceBases[chosen.targetFace].n;
+                  const dotVn2 = t.vx * n2[0] + t.vy * n2[1] + t.vz * n2[2];
+                  t.vx = t.vx - dotVn2 * n2[0] - dotVn2 * n1[0];
+                  t.vy = t.vy - dotVn2 * n2[1] - dotVn2 * n1[1];
+                  t.vz = t.vz - dotVn2 * n2[2] - dotVn2 * n1[2];
+                }
+
+                faceGrids[chosen.targetFace][chosen.targetU][chosen.targetV] = t.id;
                 t.isMoving = true;
                 t.fromFace = t.face;
                 t.fromU = t.u;
                 t.fromV = t.v;
-                t.targetFace = best.targetFace;
-                t.targetU = best.targetU;
-                t.targetV = best.targetV;
-                t.progress = 0.0;
-                t.dir = best.nextDir;
-                t.lastDrive = Math.abs(best.score);
-                const urgency = Math.min(t.lastDrive * 0.45, 2.2);
-                t.moveSpeed = COLOR_BASE_SPEEDS[t.colorIndex] + urgency + pseudoRandom() * 0.3;
+                t.targetFace = chosen.targetFace;
+                t.targetU = chosen.targetU;
+                t.targetV = chosen.targetV;
+                t.wasContinuous = (t._overflow > 0);
+                t.progress = t._overflow || 0.0;
+                t._overflow = 0.0;
+                t.dir = chosen.nextDir;
+                t.lastDrive = Math.max(0, chosen.score);
+                const urgency = Math.min(t.lastDrive * 0.06, 1.1);
+                const speedMultiplier = 1.0 + (forcePowerMultiplier - 1.0) * 0.22;
+                t.moveSpeed = (COLOR_BASE_SPEEDS[t.colorIndex] * speedMultiplier) + urgency;
               } else {
-                // Surrounded or all open cells are locked in recent history:
-                // Strictly wait in place instead of oscillating back to n-1 cell!
+                // Surrounded or only n-1 is open: wait briefly and decay velocity so it can find a way out next step
+                t.wasContinuous = false;
+                t._overflow = 0.0;
+                t.stuckTimer = (t.stuckTimer || 0) + 0.08;
+                t.vx *= 0.5;
+                t.vy *= 0.5;
+                t.vz *= 0.5;
                 const wR = COLOR_WAIT_RANGES[t.colorIndex];
-                t.waitTimer = wR[0] + pseudoRandom() * (wR[1] - wR[0]) * 0.7;
+                t.waitTimer = wR[0] + pseudoRandom() * (wR[1] - wR[0]);
               }
             }
           }
@@ -2480,13 +3558,39 @@
 
 
 
-      function writeTileToInstance(data, ptr, t) {
+      function writeGhostInstance(data, ptr, face, u, v, col, alpha, scale, stretchDir) {
+        const b = faceBases[face];
+        const C = getCellCenter(face, u, v);
+        // Subtle longitudinal connection along motion axis (never wider than the tile!)
+        const su = stretchDir ? (1.0 + Math.abs(stretchDir[0]) * 0.10) : 1.0;
+        const sv = stretchDir ? (1.0 + Math.abs(stretchDir[1]) * 0.10) : 1.0;
+        data[ptr++] = C[0];
+        data[ptr++] = C[1];
+        data[ptr++] = C[2];
+        data[ptr++] = b.tu[0] * su;
+        data[ptr++] = b.tu[1] * su;
+        data[ptr++] = b.tu[2] * su;
+        data[ptr++] = b.tv[0] * sv;
+        data[ptr++] = b.tv[1] * sv;
+        data[ptr++] = b.tv[2] * sv;
+        data[ptr++] = b.n[0];
+        data[ptr++] = b.n[1];
+        data[ptr++] = b.n[2];
+        data[ptr++] = col[0];
+        data[ptr++] = col[1];
+        data[ptr++] = col[2];
+        data[ptr++] = alpha;
+        data[ptr++] = -Math.abs(scale); // Negative scale renders flush surface wake slice
+        return ptr;
+      }
+
+      function writeTileAtProgress(data, ptr, t, p, alpha, scaleMult, isMotionBlur = false) {
         let C, Tu, Tv, N;
         if (t.isMoving && t.targetFace !== t.fromFace) {
           // Clean 90-degree corner transition swiping across the outer face edge:
-          // Strictly stays on the outside surface of the cube (no dipping inside or swirling)
-          const p = t.progress;
-          const ease = p < 0.5 ? 2.0 * p * p : -1.0 + (4.0 - 2.0 * p) * p;
+          const ease = t.wasContinuous
+            ? (0.85 * p + 0.15 * (0.5 - 0.5 * Math.cos(p * Math.PI)))
+            : (0.68 * p + 0.32 * (0.5 - 0.5 * Math.cos(p * Math.PI)));
           const theta = ease * Math.PI * 0.5;
 
           const b1 = faceBases[t.fromFace];
@@ -2511,16 +3615,16 @@
           ];
 
           // 2. Rigid orientation of tile: rotate Tu and Tv around E with N
-          // The n2 axis on fromFace rotates into -n1 on targetFace
           const n2Rot = [
             cosT * n2[0] - sinT * n1[0],
             cosT * n2[1] - sinT * n1[1],
             cosT * n2[2] - sinT * n1[2]
           ];
 
+          const stretch = isMotionBlur ? 1.12 : 1.0;
           const tu1 = b1.tu;
           const dotTu1E = tu1[0] * E[0] + tu1[1] * E[1] + tu1[2] * E[2];
-          const dotTu1N2 = tu1[0] * n2[0] + tu1[1] * n2[1] + tu1[2] * n2[2];
+          const dotTu1N2 = (tu1[0] * n2[0] + tu1[1] * n2[1] + tu1[2] * n2[2]) * stretch;
           Tu = [
             dotTu1E * E[0] + dotTu1N2 * n2Rot[0],
             dotTu1E * E[1] + dotTu1N2 * n2Rot[1],
@@ -2529,15 +3633,13 @@
 
           const tv1 = b1.tv;
           const dotTv1E = tv1[0] * E[0] + tv1[1] * E[1] + tv1[2] * E[2];
-          const dotTv1N2 = tv1[0] * n2[0] + tv1[1] * n2[1] + tv1[2] * n2[2];
+          const dotTv1N2 = (tv1[0] * n2[0] + tv1[1] * n2[1] + tv1[2] * n2[2]) * stretch;
           Tv = [
             dotTv1E * E[0] + dotTv1N2 * n2Rot[0],
             dotTv1E * E[1] + dotTv1N2 * n2Rot[1],
             dotTv1E * E[2] + dotTv1N2 * n2Rot[2]
           ];
 
-          // 3. Trajectory strictly on the outer faces:
-          // c1 is on fromFace; pEdge is the outer corner edge line point; c2 is on targetFace
           const c1 = getCellCenter(t.fromFace, t.fromU, t.fromV);
           const pEdge = [
             c1[0] + 0.5 * step * n2[0],
@@ -2546,7 +3648,6 @@
           ];
 
           if (ease <= 0.5) {
-            // First half: slide straight forward on fromFace from c1 to pEdge
             const t1 = ease * 2.0;
             C = [
               c1[0] + t1 * 0.5 * step * n2[0],
@@ -2554,7 +3655,6 @@
               c1[2] + t1 * 0.5 * step * n2[2]
             ];
           } else {
-            // Second half: slide straight forward on targetFace from pEdge to c2
             const t2 = (ease - 0.5) * 2.0;
             C = [
               pEdge[0] - t2 * 0.5 * step * n1[0],
@@ -2563,20 +3663,18 @@
             ];
           }
 
-          // Gentle outward clearance as it passes over the outer edge line
           const cornerLift = Math.sin(ease * Math.PI) * 0.035;
           C[0] += N[0] * cornerLift;
           C[1] += N[1] * cornerLift;
           C[2] += N[2] * cornerLift;
         } else {
-          // Standard straight motion within same face
+          // Smooth, continuous glide within same face
           const b = faceBases[t.face];
-          Tu = b.tu;
-          Tv = b.tv;
-          N  = b.n;
+          N = b.n;
           if (t.isMoving) {
-            const p = t.progress;
-            const ease = p < 0.5 ? 2.0 * p * p : -1.0 + (4.0 - 2.0 * p) * p;
+            const ease = t.wasContinuous
+              ? (0.90 * p + 0.10 * (0.5 - 0.5 * Math.cos(p * Math.PI)))
+              : (0.72 * p + 0.28 * (0.5 - 0.5 * Math.cos(p * Math.PI)));
             const c1 = getCellCenter(t.face, t.fromU, t.fromV);
             const c2 = getCellCenter(t.face, t.targetU, t.targetV);
             C = [
@@ -2584,14 +3682,29 @@
               (1.0 - ease) * c1[1] + ease * c2[1],
               (1.0 - ease) * c1[2] + ease * c2[2]
             ];
+            if (isMotionBlur) {
+              // Subtle longitudinal shutter overlap strictly along movement axis (zero lateral bloating!)
+              const moveU = Math.abs(t.targetU - t.fromU);
+              const moveV = Math.abs(t.targetV - t.fromV);
+              const su = 1.0 + moveU * 0.14;
+              const sv = 1.0 + moveV * 0.14;
+              Tu = [b.tu[0] * su, b.tu[1] * su, b.tu[2] * su];
+              Tv = [b.tv[0] * sv, b.tv[1] * sv, b.tv[2] * sv];
+            } else {
+              Tu = b.tu;
+              Tv = b.tv;
+            }
           } else {
+            Tu = b.tu;
+            Tv = b.tv;
             C = getCellCenter(t.face, t.u, t.v);
           }
         }
-        t.currentPos = C;
+        if (!isMotionBlur && alpha >= 0.99) t.currentPos = C;
 
         const col = t.color;
-        const scale = Math.max(0.01, t.scale !== undefined ? t.scale : 1.0);
+        const baseScale = Math.max(0.01, t.scale !== undefined ? t.scale : 1.0);
+        const signedScale = (isMotionBlur ? -1.0 : 1.0) * baseScale * scaleMult;
 
         data[ptr++] = C[0];
         data[ptr++] = C[1];
@@ -2608,12 +3721,13 @@
         data[ptr++] = col[0];
         data[ptr++] = col[1];
         data[ptr++] = col[2];
-        data[ptr++] = col[3];
-        data[ptr++] = scale;
+        data[ptr++] = alpha;
+        data[ptr++] = signedScale;
         return ptr;
       }
 
-      // Rebuild moving 3D tile instance buffers: partitions into back and front sets
+      // Rebuild moving 3D tile instance buffers:
+      // Separates translucent surface wake / shutter-blur slices (depthMask=false) from solid 3D tiles (depthMask=true)
       const faceNz = new Float32Array(6);
       function rebuildTileMesh(viewMat) {
         const vm = viewMat || viewMatrix;
@@ -2622,30 +3736,124 @@
           faceNz[f] = vm[2] * n[0] + vm[6] * n[1] + vm[10] * n[2];
         }
 
+        let backTrailPtr = 0;
+        let frontTrailPtr = 0;
         let backPtr = 0;
         let frontPtr = 0;
+        backTrailCount = 0;
+        frontTrailCount = 0;
         backInstanceCount = 0;
         frontInstanceCount = 0;
         const numTiles = tiles.length;
 
+        // Pass A: Natural tapering surface wake & multi-sample shutter motion blur (rendered with depthMask = false)
+        for (let i = 0; i < numTiles; i++) {
+          const t = tiles[i];
+          if (!t || t.isDying) continue;
+
+          // 1. Tapering fading trail wake (n-3, n-2, n-1 + midpoint bridge)
+          if (t.trail3Alpha > 0.015 && t.trail3Face !== undefined && t.trail3Face >= 0) {
+            const sc3 = 0.28 + Math.min(1.0, t.trail3Alpha / 0.20) * 0.24;
+            if (faceNz[t.trail3Face] > 0.0) {
+              frontTrailPtr = writeGhostInstance(frontTrailData, frontTrailPtr, t.trail3Face, t.trail3U, t.trail3V, t.color, t.trail3Alpha * 0.55, sc3, t.dir);
+              frontTrailCount++;
+            } else {
+              backTrailPtr = writeGhostInstance(backTrailData, backTrailPtr, t.trail3Face, t.trail3U, t.trail3V, t.color, t.trail3Alpha * 0.55, sc3, t.dir);
+              backTrailCount++;
+            }
+          }
+
+          if (t.trail2Alpha > 0.015 && t.trail2Face !== undefined && t.trail2Face >= 0) {
+            const sc2 = 0.36 + Math.min(1.0, t.trail2Alpha / 0.22) * 0.28;
+            if (faceNz[t.trail2Face] > 0.0) {
+              frontTrailPtr = writeGhostInstance(frontTrailData, frontTrailPtr, t.trail2Face, t.trail2U, t.trail2V, t.color, t.trail2Alpha * 0.68, sc2, t.dir);
+              frontTrailCount++;
+            } else {
+              backTrailPtr = writeGhostInstance(backTrailData, backTrailPtr, t.trail2Face, t.trail2U, t.trail2V, t.color, t.trail2Alpha * 0.68, sc2, t.dir);
+              backTrailCount++;
+            }
+          }
+
+          if (t.trailAlpha > 0.015 && t.trailFace !== undefined && t.trailFace >= 0) {
+            const sc1 = 0.44 + Math.min(1.0, t.trailAlpha / 0.24) * 0.32;
+            const isFront1 = faceNz[t.trailFace] > 0.0;
+            if (isFront1) {
+              frontTrailPtr = writeGhostInstance(frontTrailData, frontTrailPtr, t.trailFace, t.trailU, t.trailV, t.color, t.trailAlpha * 0.78, sc1, t.dir);
+              frontTrailCount++;
+            } else {
+              backTrailPtr = writeGhostInstance(backTrailData, backTrailPtr, t.trailFace, t.trailU, t.trailV, t.color, t.trailAlpha * 0.78, sc1, t.dir);
+              backTrailCount++;
+            }
+            // Midpoint bridge between (n-1) and current origin cell so the wake is a continuous ribbon
+            if (t.trailNextFace === t.trailFace) {
+              const midU = (t.trailU + t.trailNextU) * 0.5;
+              const midV = (t.trailV + t.trailNextV) * 0.5;
+              const scMid = sc1 * 0.92;
+              if (isFront1) {
+                frontTrailPtr = writeGhostInstance(frontTrailData, frontTrailPtr, t.trailFace, midU, midV, t.color, t.trailAlpha * 0.65, scMid, t.dir);
+                frontTrailCount++;
+              } else {
+                backTrailPtr = writeGhostInstance(backTrailData, backTrailPtr, t.trailFace, midU, midV, t.color, t.trailAlpha * 0.65, scMid, t.dir);
+                backTrailCount++;
+              }
+            }
+          }
+
+          // 2. Tight 4-sample optical camera-shutter motion blur directly behind moving tiles
+          if (t.isMoving && t.progress > 0.02) {
+            const speedNorm = Math.min(1.35, Math.max(0.45, (t.moveSpeed || 1.5) * 0.45));
+            const shutterSpan = 0.24 * speedNorm;
+            let nz = faceNz[t.face];
+            if (t.targetFace !== t.fromFace) {
+              const theta = t.progress * Math.PI * 0.5;
+              nz = Math.cos(theta) * faceNz[t.fromFace] + Math.sin(theta) * faceNz[t.targetFace];
+            }
+            const isFront = nz > 0.0;
+            for (let s = 4; s >= 1; s--) {
+              const frac = s * 0.25; // 1.0, 0.75, 0.50, 0.25
+              const pSample = Math.max(0.0, t.progress - frac * shutterSpan);
+              const sampleAlpha = (0.18 * (1.15 - frac * 0.78)) * Math.min(1.0, speedNorm);
+              const sampleScale = 0.96 - frac * 0.14;
+              if (isFront) {
+                frontTrailPtr = writeTileAtProgress(frontTrailData, frontTrailPtr, t, pSample, sampleAlpha, sampleScale, true);
+                frontTrailCount++;
+              } else {
+                backTrailPtr = writeTileAtProgress(backTrailData, backTrailPtr, t, pSample, sampleAlpha, sampleScale, true);
+                backTrailCount++;
+              }
+            }
+          }
+        }
+
+        // Pass B: Primary solid 3D tiles (rendered with depthMask = true)
         for (let i = 0; i < numTiles; i++) {
           const t = tiles[i];
           if (!t) continue;
           let nz = faceNz[t.face];
           if (t.isMoving && t.targetFace !== t.fromFace) {
-            const ease = t.progress < 0.5 ? 2.0 * t.progress * t.progress : -1.0 + (4.0 - 2.0 * t.progress) * t.progress;
+            const ease = t.wasContinuous
+              ? (0.85 * t.progress + 0.15 * (0.5 - 0.5 * Math.cos(t.progress * Math.PI)))
+              : (0.68 * t.progress + 0.32 * (0.5 - 0.5 * Math.cos(t.progress * Math.PI)));
             const theta = ease * Math.PI * 0.5;
             nz = Math.cos(theta) * faceNz[t.fromFace] + Math.sin(theta) * faceNz[t.targetFace];
           }
           if (nz > 0.0) {
-            frontPtr = writeTileToInstance(frontInstanceData, frontPtr, t);
+            frontPtr = writeTileAtProgress(frontInstanceData, frontPtr, t, t.progress, 1.0, 1.0, false);
             frontInstanceCount++;
           } else {
-            backPtr = writeTileToInstance(backInstanceData, backPtr, t);
+            backPtr = writeTileAtProgress(backInstanceData, backPtr, t, t.progress, 1.0, 1.0, false);
             backInstanceCount++;
           }
         }
 
+        gl.bindBuffer(gl.ARRAY_BUFFER, backTrailBuffer);
+        if (backTrailPtr > 0) {
+          gl.bufferSubData(gl.ARRAY_BUFFER, 0, backTrailData.subarray(0, backTrailPtr));
+        }
+        gl.bindBuffer(gl.ARRAY_BUFFER, frontTrailBuffer);
+        if (frontTrailPtr > 0) {
+          gl.bufferSubData(gl.ARRAY_BUFFER, 0, frontTrailData.subarray(0, frontTrailPtr));
+        }
         gl.bindBuffer(gl.ARRAY_BUFFER, backInstanceBuffer);
         if (backPtr > 0) {
           gl.bufferSubData(gl.ARRAY_BUFFER, 0, backInstanceData.subarray(0, backPtr));
@@ -2699,6 +3907,7 @@
       }
 
       window.addEventListener('resize', resize);
+      window.addEventListener('orientationchange', () => setTimeout(resize, 120));
       resize();
 
       let frameCount = 0;
@@ -2742,8 +3951,9 @@
 
         updateMatrices(canvas.width, canvas.height);
 
-        // Advance wandering tiles simulation and rebuild dynamic vertex buffer with updated view matrix
-        updateTileSimulation(dt);
+        // Advance wandering tiles simulation, preset progress, and rebuild dynamic vertex buffers
+        updateTileSimulation(dt * simSpeedMultiplier);
+        updatePresetProgress(dt);
         rebuildTileMesh(viewMatrix);
         updateCenterOfGravity(dt);
 
@@ -2767,9 +3977,9 @@
 
         const camDist = baseDistance / zoom;
 
-        function drawTileInstances(instBuffer, count, isFront, cDist) {
+        function drawTileInstances(instBuffer, count, isFront, cDist, writeDepth = true) {
           if (count <= 0 || !extInst) return;
-          gl.depthMask(true);
+          gl.depthMask(writeDepth);
           gl.enable(gl.CULL_FACE);
           gl.cullFace(gl.BACK);
           gl.useProgram(progTiles);
@@ -2829,8 +4039,9 @@
           extInst.vertexAttribDivisorANGLE(tileAttrs.scale, 0);
         }
 
-        // --- Pass 1: Back-Facing Domino Tiles ---
-        drawTileInstances(backInstanceBuffer, backInstanceCount, 0.0, camDist);
+        // --- Pass 1: Back-Facing Trails & Domino Tiles ---
+        drawTileInstances(backTrailBuffer, backTrailCount, 0.0, camDist, false);
+        drawTileInstances(backInstanceBuffer, backInstanceCount, 0.0, camDist, true);
 
         // --- Pass 2: Wireframe Grid & Core Edges ---
         // Clean architectural wireframe scaffold
@@ -2840,6 +4051,8 @@
         gl.uniformMatrix4fv(lineAttrs.uMVP, false, mvpMatrix);
         gl.uniformMatrix4fv(lineAttrs.uModelView, false, viewMatrix);
         gl.uniform1f(lineAttrs.uIsLight, isLight ? 1.0 : 0.0);
+        gl.uniform1f(lineAttrs.uCamDist, camDist);
+        gl.uniform1f(lineAttrs.uHalf, HALF);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer);
         gl.vertexAttribPointer(lineAttrs.position, 3, gl.FLOAT, false, 40, 0);
@@ -2869,61 +4082,126 @@
 
         gl.drawArrays(gl.TRIANGLES, 0, 36);
 
-        // --- Pass 4: Front-Facing Domino Tiles ---
-        drawTileInstances(frontInstanceBuffer, frontInstanceCount, 1.0, camDist);
+        // --- Pass 4: Front-Facing Trails & Domino Tiles ---
+        drawTileInstances(frontTrailBuffer, frontTrailCount, 1.0, camDist, false);
+        drawTileInstances(frontInstanceBuffer, frontInstanceCount, 1.0, camDist, true);
 
         requestAnimationFrame(render);
       }
 
       requestAnimationFrame(render);
 
-      // Mouse drag controls: Omnidirectional Arcball
+      // Multi-Touch Pinch-to-Zoom & Arcball Drag Controls
+      const activePointers = new Map();
+      let isPinching = false;
+      let initialPinchDist = 0;
+      let initialPinchZoom = 1.0;
+
       canvas.addEventListener('pointerdown', (e) => {
-        isDragging = true;
-        prevMouseX = e.clientX;
-        prevMouseY = e.clientY;
-        lastMoveTime = performance.now();
-        velX = 0;
-        velY = 0;
-        canvas.setPointerCapture(e.pointerId);
-      });
+        // Auto-collapse unpinned panel when user taps the 3D cube canvas
+        if (!isPinned && matrixPanel && !matrixPanel.classList.contains('collapsed')) {
+          matrixPanel.classList.add('collapsed');
+        }
 
-      canvas.addEventListener('pointermove', (e) => {
-        if (!isDragging) return;
-        const now = performance.now();
-        const dt = Math.max(now - lastMoveTime, 4);
-        lastMoveTime = now;
+        activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
 
-        const dx = e.clientX - prevMouseX;
-        const dy = e.clientY - prevMouseY;
-        prevMouseX = e.clientX;
-        prevMouseY = e.clientY;
-
-        const dRotX = dx * 0.005;
-        const dRotY = dy * 0.005;
-
-        rotateCube(dRotX, dRotY);
-
-        const instantVelX = (dRotX / dt) * 14.0;
-        const instantVelY = (dRotY / dt) * 14.0;
-        velX = velX * 0.45 + instantVelX * 0.55;
-        velY = velY * 0.45 + instantVelY * 0.55;
-        const vLen = Math.hypot(velX, velY);
-        if (vLen > MAX_ROTATION_SPEED) {
-          const capS = MAX_ROTATION_SPEED / vLen;
-          velX *= capS;
-          velY *= capS;
+        if (activePointers.size === 1) {
+          isDragging = true;
+          isPinching = false;
+          prevMouseX = e.clientX;
+          prevMouseY = e.clientY;
+          lastMoveTime = performance.now();
+          velX = 0;
+          velY = 0;
+        } else if (activePointers.size === 2) {
+          isDragging = false;
+          isPinching = true;
+          velX = 0;
+          velY = 0;
+          const pts = Array.from(activePointers.values());
+          initialPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+          initialPinchZoom = targetZoom;
         }
       });
 
-      canvas.addEventListener('pointerup', (e) => {
-        isDragging = false;
-        try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+      canvas.addEventListener('pointermove', (e) => {
+        if (!activePointers.has(e.pointerId)) return;
+        activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        // Two-Finger Pinch-to-Zoom
+        if (isPinching && activePointers.size >= 2) {
+          const pts = Array.from(activePointers.values());
+          const currentDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+          if (initialPinchDist > 8) {
+            const factor = currentDist / initialPinchDist;
+            targetZoom = Math.max(0.2, Math.min(6.0, initialPinchZoom * factor));
+          }
+          return;
+        }
+
+        // Single-Finger / Mouse Arcball Drag
+        if (isDragging && activePointers.size === 1) {
+          const now = performance.now();
+          const dt = Math.max(now - lastMoveTime, 4);
+          lastMoveTime = now;
+
+          const dx = e.clientX - prevMouseX;
+          const dy = e.clientY - prevMouseY;
+          prevMouseX = e.clientX;
+          prevMouseY = e.clientY;
+
+          const dRotX = dx * 0.005;
+          const dRotY = dy * 0.005;
+
+          rotateCube(dRotX, dRotY);
+
+          const instantVelX = (dRotX / dt) * 14.0;
+          const instantVelY = (dRotY / dt) * 14.0;
+          velX = velX * 0.45 + instantVelX * 0.55;
+          velY = velY * 0.45 + instantVelY * 0.55;
+          const vLen = Math.hypot(velX, velY);
+          if (vLen > MAX_ROTATION_SPEED) {
+            const capS = MAX_ROTATION_SPEED / vLen;
+            velX *= capS;
+            velY *= capS;
+          }
+        }
       });
 
-      canvas.addEventListener('pointercancel', () => {
-        isDragging = false;
-      });
+      function handlePointerEnd(e) {
+        activePointers.delete(e.pointerId);
+        try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+
+        if (activePointers.size === 1) {
+          // Smooth transition from 2-finger pinch back to 1-finger drag without snapping
+          isPinching = false;
+          isDragging = true;
+          const remaining = Array.from(activePointers.values())[0];
+          prevMouseX = remaining.x;
+          prevMouseY = remaining.y;
+          lastMoveTime = performance.now();
+          velX = 0;
+          velY = 0;
+        } else if (activePointers.size === 0) {
+          isDragging = false;
+          isPinching = false;
+        }
+      }
+
+      canvas.addEventListener('pointerup', handlePointerEnd);
+      canvas.addEventListener('pointercancel', handlePointerEnd);
+
+      // Prevent native browser pinch zoom and gesture conflicts on touch devices
+      canvas.addEventListener('touchstart', (e) => {
+        if (e.touches.length >= 2) e.preventDefault();
+      }, { passive: false });
+      canvas.addEventListener('touchmove', (e) => {
+        if (e.touches.length >= 2) e.preventDefault();
+      }, { passive: false });
+      document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+      document.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+      document.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
 
       canvas.addEventListener('wheel', (e) => {
         e.preventDefault();
