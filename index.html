@@ -804,7 +804,7 @@
   </style>
 </head>
 <body class="dark-theme">
-  <div id="preset-hud" title="Active preset & goal progress (Auto-cycles to next preset at ~80% success)">
+  <div id="preset-hud" title="Active preset & goal progress (Auto-cycles to next preset upon reaching 100% completion)">
     <div class="preset-hud-top">
       <span class="preset-hud-name" id="preset-hud-name">TRIBES</span>
       <span class="preset-hud-pct" id="preset-hud-pct">0%</span>
@@ -2589,17 +2589,17 @@
         }
 
         const rawPct = activeSamples > 0 ? (satisfiedSum / activeSamples) * 100.0 : 0.0;
-        // Ramp gently over ~14 seconds so the user can enjoy the preset formation building up to ~80%+
-        const timeRamp = Math.min(1.0, presetTimeInMode / 14.0);
-        const targetPct = Math.min(99.0, rawPct * 0.72 + timeRamp * 28.0);
-        presetSuccessSmoothed += (targetPct - presetSuccessSmoothed) * Math.min(1.0, dt * 1.8);
+        // Ramp gracefully over ~35-40 seconds so the preset has ample time to settle and be enjoyed
+        const timeRamp = Math.min(1.0, presetTimeInMode / 38.0);
+        const targetPct = Math.min(100.0, rawPct * 0.65 + timeRamp * 35.0);
+        presetSuccessSmoothed += (targetPct - presetSuccessSmoothed) * Math.min(1.0, dt * 1.2);
 
-        const dispPct = Math.round(presetSuccessSmoothed);
+        const dispPct = Math.min(100, Math.round(presetSuccessSmoothed));
         if (presetHudPctEl) presetHudPctEl.textContent = `${dispPct}%`;
-        if (presetHudBarEl) presetHudBarEl.style.width = `${ Math.min(100, dispPct) }%`;
+        if (presetHudBarEl) presetHudBarEl.style.width = `${dispPct}%`;
 
-        // Once preset reaches >= 80% success (and has run for at least 12s), cycle to the next preset!
-        if (presetSuccessSmoothed >= 80.0 && presetTimeInMode >= 12.0) {
+        // Wait until 100% completion (and at least 32s in the preset) before cycling to the next preset
+        if (dispPct >= 100 && presetTimeInMode >= 32.0) {
           const curIdx = PRESET_CYCLE_ORDER.indexOf(currentPresetKey);
           const nextIdx = (curIdx + 1) % PRESET_CYCLE_ORDER.length;
           const nextKey = PRESET_CYCLE_ORDER[nextIdx];
