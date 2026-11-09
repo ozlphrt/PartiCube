@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>PartiCube - Dented Cube Explorer</title>
-  <meta name="description" content="Interactive 3D Dented Cube Explorer & Shape Alignment for PartiCube.">
+  <title>PartiCube - Dented Cube (Missing Building Blocks)</title>
+  <meta name="description" content="Interactive 3D Block-Carved Dented Cube for PartiCube with missing grid mini-cube blocks.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧊</text></svg>">
   <style>
     * {
@@ -131,7 +131,7 @@
       position: fixed;
       top: 14px;
       right: 16px;
-      width: 290px;
+      width: 295px;
       max-height: calc(100vh - 28px);
       overflow-y: auto;
       background: rgba(255, 255, 255, 0.94);
@@ -317,6 +317,37 @@
       transform: scale(1.18);
     }
 
+    /* Resolution Selector */
+    .res-buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+    .res-btn {
+      padding: 5px 0;
+      border: 1px solid rgba(0, 0, 0, 0.10);
+      background: rgba(0, 0, 0, 0.04);
+      border-radius: 6px;
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #334155;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    body.dark-theme .res-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.10);
+      color: #cbd5e1;
+    }
+    .res-btn.active {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0284c7;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35);
+    }
+
     /* Toggles Grid */
     .toggles-grid {
       display: grid;
@@ -464,106 +495,113 @@
 <body>
   <div id="top-left-hud">
     <div class="hud-title-badge">
-      <span>🧊 DENTED CUBE EXPLORER</span>
-      <span class="subtext">Shape Alignment</span>
+      <span>🧊 DENTED CUBE</span>
+      <span class="subtext">Missing Building Blocks</span>
     </div>
     <div class="shading-pills">
       <button class="pill-btn active" data-shading="clay">Matte Clay</button>
       <button class="pill-btn" data-shading="glass">PartiCube Glass</button>
-      <button class="pill-btn" data-shading="normals">Normals</button>
+      <button class="pill-btn" data-shading="cavity">Recessed Depth</button>
       <button class="pill-btn" data-shading="wireframe">Wireframe</button>
     </div>
   </div>
 
   <div id="controls-panel">
     <div class="panel-header">
-      <span class="panel-title">DENT CONFIGURATION</span>
+      <span class="panel-title">VOXEL CARVE CONFIG</span>
       <div class="header-actions">
         <button id="theme-btn" class="icon-btn" title="Toggle Light/Dark Theme">🌓</button>
         <button id="reset-btn" class="icon-btn" title="Reset to Defaults">↺</button>
       </div>
     </div>
 
-    <div class="section-label">Shape Presets</div>
+    <div class="section-label">Grid Resolution (Block Size)</div>
+    <div class="res-buttons">
+      <button class="res-btn" data-res="15">15³ Chunky</button>
+      <button class="res-btn active" data-res="19">19³ Default</button>
+      <button class="res-btn" data-res="25">25³ Med</button>
+      <button class="res-btn" data-res="31">31³ Fine</button>
+    </div>
+
+    <div class="section-label">Carving Presets</div>
     <div class="preset-grid">
-      <button class="preset-btn active" data-preset="balanced">
-        <span>Balanced Dents</span>
-        <span class="preset-desc">3 corners, 4 edges, 3 faces</span>
+      <button class="preset-btn active" data-preset="architectural">
+        <span>Architectural</span>
+        <span class="preset-desc">Stepped notches & missing chunks</span>
       </button>
-      <button class="preset-btn" data-preset="impact">
-        <span>Impact Craters</span>
-        <span class="preset-desc">Deep bowl craters & chips</span>
+      <button class="preset-btn" data-preset="cornerBites">
+        <span>Corner Bites</span>
+        <span class="preset-desc">Large missing corner blocks</span>
       </button>
-      <button class="preset-btn" data-preset="monolith">
-        <span>Chipped Monolith</span>
-        <span class="preset-desc">Angled corner cleaves</span>
+      <button class="preset-btn" data-preset="trenches">
+        <span>Edge Trenches</span>
+        <span class="preset-desc">Stepped grooves along edges</span>
       </button>
-      <button class="preset-btn" data-preset="weathered">
-        <span>Subtle Worn</span>
-        <span class="preset-desc">Gentle rounded erosion</span>
+      <button class="preset-btn" data-preset="pockets">
+        <span>Missing Bricks</span>
+        <span class="preset-desc">Scattered face block alcoves</span>
       </button>
     </div>
 
-    <div class="section-label">Morph Comparison</div>
+    <div class="section-label">Missing Blocks Configuration</div>
     <div class="slider-row">
       <div class="slider-header">
-        <span>Cube Shape Morph</span>
-        <span id="val-morph" class="slider-val">100% Dented</span>
+        <span>Missing Corner Blocks</span>
+        <span id="val-corners" class="slider-val">3 Corners (Size 3)</span>
       </div>
-      <input type="range" id="slider-morph" min="0" max="100" value="100">
-    </div>
-
-    <div class="section-label">Dent Intensity & Scale</div>
-    <div class="slider-row">
-      <div class="slider-header">
-        <span>Corner Dents (Chipping)</span>
-        <span id="val-corners" class="slider-val">0.32</span>
-      </div>
-      <input type="range" id="slider-corners" min="0" max="100" value="32">
+      <input type="range" id="slider-corners" min="0" max="6" value="3">
     </div>
 
     <div class="slider-row">
       <div class="slider-header">
-        <span>Edge Notches (Erosion)</span>
-        <span id="val-edges" class="slider-val">0.28</span>
+        <span>Corner Cutout Size</span>
+        <span id="val-corner-size" class="slider-val">3x3x3 blocks</span>
       </div>
-      <input type="range" id="slider-edges" min="0" max="100" value="28">
+      <input type="range" id="slider-corner-size" min="1" max="4" value="3">
     </div>
 
     <div class="slider-row">
       <div class="slider-header">
-        <span>Face Craters (Hollows)</span>
-        <span id="val-faces" class="slider-val">0.35</span>
+        <span>Missing Edge Trenches</span>
+        <span id="val-edges" class="slider-val">4 Edges</span>
       </div>
-      <input type="range" id="slider-faces" min="0" max="100" value="35">
+      <input type="range" id="slider-edges" min="0" max="8" value="4">
     </div>
 
     <div class="slider-row">
       <div class="slider-header">
-        <span>Organic Waviness</span>
-        <span id="val-noise" class="slider-val">0.12</span>
+        <span>Missing Face Pockets</span>
+        <span id="val-faces" class="slider-val">6 Pockets</span>
       </div>
-      <input type="range" id="slider-noise" min="0" max="50" value="12">
+      <input type="range" id="slider-faces" min="0" max="12" value="6">
     </div>
 
-    <div class="section-label">Overlays & Verification</div>
+    <div class="slider-row">
+      <div class="slider-header">
+        <span>Carve Depth (Layers)</span>
+        <span id="val-depth" class="slider-val">1 - 2 Blocks Deep</span>
+      </div>
+      <input type="range" id="slider-depth" min="1" max="3" value="2">
+    </div>
+
+    <div class="section-label">Display & Overlays</div>
     <div class="toggles-grid">
       <div class="toggle-chip active" id="toggle-grid">
-        <span>📐 Grid Lines</span>
+        <span>📐 Block Outlines</span>
       </div>
-      <div class="toggle-chip" id="toggle-tiles">
-        <span>🎲 Demo Tiles</span>
-      </div>
-      <div class="toggle-chip active" id="toggle-edges">
-        <span>📏 12 Cube Edges</span>
+      <div class="toggle-chip active" id="toggle-steps">
+        <span>⚡ Step Edges</span>
       </div>
       <div class="toggle-chip active" id="toggle-autorotate">
         <span>🔄 Auto Rotate</span>
       </div>
+      <div class="toggle-chip" id="toggle-explode">
+        <span>💥 Explode Blocks</span>
+      </div>
     </div>
 
     <div class="button-row">
-      <button id="randomize-btn" class="btn-action btn-primary">🎲 Randomize Dents</button>
+      <button id="randomize-btn" class="btn-action btn-primary">🎲 Randomize Blocks</button>
       <button id="copy-config-btn" class="btn-action btn-secondary">📋 Copy JSON</button>
     </div>
   </div>
@@ -571,10 +609,10 @@
   <div id="bottom-info">
     <span id="fps-badge">60 FPS</span>
     <span>•</span>
-    <span id="mesh-info">6 Faces • 31x31 Subdivision • 100% Watertight</span>
+    <span id="mesh-info">Voxel Mesh • 19³ Blocks</span>
   </div>
 
-  <div id="toast">Config copied to clipboard!</div>
+  <div id="toast">Configuration copied to clipboard!</div>
 
   <canvas id="glcanvas"></canvas>
 
@@ -589,280 +627,264 @@
         return;
       }
 
-      // State Configuration
+      // App Configuration
       const config = {
-        morph: 1.0,           // 0.0 = perfect cube, 1.0 = fully dented
-        cornerDepth: 0.32,    // depth of corner chipping
-        cornerRadius: 0.48,   // radius of corner impact
-        edgeDepth: 0.28,      // depth of edge notches
-        edgeRadius: 0.36,     // radius of edge notches
-        faceDepth: 0.35,      // depth of face craters
-        faceRadius: 0.58,     // radius of face craters
-        noiseAmount: 0.12,    // subtle surface waviness
-        subdivisions: 31,     // resolution per face (matches PartiCube)
-        shadingMode: 'clay',  // 'clay', 'glass', 'normals', 'wireframe'
+        N: 19,                  // Grid dimension: 19x19x19
+        shadingMode: 'clay',    // 'clay', 'glass', 'cavity', 'wireframe'
         showGrid: true,
-        showTiles: false,
-        showEdges: true,
+        showStepEdges: true,
         autoRotate: true,
-        seed: 42
+        explode: 0.0,
+        numCorners: 3,
+        cornerSize: 3,
+        numEdges: 4,
+        numFaces: 6,
+        maxDepth: 2,
+        seed: 1042
       };
 
       let isLight = true;
 
       // Presets
       const presets = {
-        balanced: {
-          cornerDepth: 0.32,
-          edgeDepth: 0.28,
-          faceDepth: 0.35,
-          noiseAmount: 0.12,
-          cornerMask: [1.0, 0.4, 0.9, 0.2, 0.7, 0.1, 0.85, 0.3], // Asymmetric 8 corners
-          edgeMask: [0.8, 0.0, 0.7, 0.2, 0.9, 0.1, 0.0, 0.6, 0.75, 0.0, 0.5, 0.3], // 12 edges
-          faceMask: [0.85, 0.4, 0.9, 0.2, 0.75, 0.6] // 6 faces
+        architectural: {
+          numCorners: 3,
+          cornerSize: 3,
+          numEdges: 4,
+          numFaces: 6,
+          maxDepth: 2
         },
-        impact: {
-          cornerDepth: 0.48,
-          edgeDepth: 0.42,
-          faceDepth: 0.60,
-          noiseAmount: 0.18,
-          cornerMask: [1.0, 0.8, 0.2, 0.9, 0.5, 1.0, 0.3, 0.7],
-          edgeMask: [1.0, 0.6, 0.8, 0.0, 0.9, 0.7, 0.5, 0.8, 1.0, 0.3, 0.6, 0.9],
-          faceMask: [1.0, 0.8, 1.0, 0.7, 0.9, 0.8]
+        cornerBites: {
+          numCorners: 5,
+          cornerSize: 4,
+          numEdges: 2,
+          numFaces: 2,
+          maxDepth: 3
         },
-        monolith: {
-          cornerDepth: 0.45,
-          edgeDepth: 0.20,
-          faceDepth: 0.18,
-          noiseAmount: 0.06,
-          cornerMask: [1.0, 0.0, 0.9, 0.0, 0.0, 0.85, 0.0, 0.0], // 3 sharp cleaves
-          edgeMask: [0.7, 0.0, 0.6, 0.0, 0.8, 0.0, 0.0, 0.5, 0.0, 0.0, 0.6, 0.0],
-          faceMask: [0.3, 0.1, 0.4, 0.2, 0.25, 0.15]
+        trenches: {
+          numCorners: 1,
+          cornerSize: 2,
+          numEdges: 8,
+          numFaces: 3,
+          maxDepth: 2
         },
-        weathered: {
-          cornerDepth: 0.20,
-          edgeDepth: 0.18,
-          faceDepth: 0.22,
-          noiseAmount: 0.10,
-          cornerMask: [0.6, 0.5, 0.7, 0.4, 0.5, 0.6, 0.7, 0.5], // Uniform gentle wear
-          edgeMask: [0.5, 0.4, 0.5, 0.4, 0.5, 0.4, 0.5, 0.4, 0.5, 0.4, 0.5, 0.4],
-          faceMask: [0.4, 0.35, 0.4, 0.3, 0.45, 0.35]
+        pockets: {
+          numCorners: 1,
+          cornerSize: 2,
+          numEdges: 2,
+          numFaces: 10,
+          maxDepth: 1
         }
       };
 
-      let activePresetKey = 'balanced';
-      let currentCornerMask = [...presets.balanced.cornerMask];
-      let currentEdgeMask = [...presets.balanced.edgeMask];
-      let currentFaceMask = [...presets.balanced.faceMask];
+      // Voxel Matrix: 1 = solid mini-cube, 0 = missing / carved out block
+      let voxels = null;
 
-      // Procedural 3D Simplex-Style Noise for Continuous Surface Waviness
-      function hash3(x, y, z) {
-        let n = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719 + config.seed * 0.17) * 43758.5453;
-        return n - Math.floor(n);
+      function pseudoRandom(seed) {
+        let s = seed;
+        return function() {
+          s = (s * 9301 + 49297) % 233280;
+          return s / 233280;
+        };
       }
 
-      function smoothNoise3D(x, y, z) {
-        const ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z);
-        const fx = x - ix, fy = y - iy, fz = z - iz;
-        // Cubic Hermite smoothstep
-        const wx = fx * fx * (3 - 2 * fx);
-        const wy = fy * fy * (3 - 2 * fy);
-        const wz = fz * fz * (3 - 2 * fz);
+      // Carves the Voxel Cube according to configuration
+      function generateVoxelCube() {
+        const N = config.N;
+        voxels = new Uint8Array(N * N * N);
+        voxels.fill(1); // Start with a full solid cube of N x N x N mini-cubes
 
-        const v000 = hash3(ix, iy, iz);
-        const v100 = hash3(ix + 1, iy, iz);
-        const v010 = hash3(ix, iy + 1, iz);
-        const v110 = hash3(ix + 1, iy + 1, iz);
-        const v001 = hash3(ix, iy, iz + 1);
-        const v101 = hash3(ix + 1, iy, iz + 1);
-        const v011 = hash3(ix, iy + 1, iz + 1);
-        const v111 = hash3(ix + 1, iy + 1, iz + 1);
+        const rng = pseudoRandom(config.seed);
 
-        const v00 = v000 * (1 - wx) + v100 * wx;
-        const v10 = v010 * (1 - wx) + v110 * wx;
-        const v01 = v001 * (1 - wx) + v101 * wx;
-        const v11 = v011 * (1 - wx) + v111 * wx;
-
-        const v0 = v00 * (1 - wy) + v10 * wy;
-        const v1 = v01 * (1 - wy) + v11 * wy;
-
-        return (v0 * (1 - wz) + v1 * wz) * 2.0 - 1.0;
-      }
-
-      // Canonical 8 Corner Points
-      const CORNER_POINTS = [
-        [ 1,  1,  1], [-1,  1,  1], [-1, -1,  1], [ 1, -1,  1],
-        [ 1,  1, -1], [-1,  1, -1], [-1, -1, -1], [ 1, -1, -1]
-      ];
-
-      // 12 Edge Midpoints & Directions
-      const EDGE_CENTERS = [
-        // 4 Z-parallel edges
-        [ 1,  1,  0], [-1,  1,  0], [-1, -1,  0], [ 1, -1,  0],
-        // 4 Y-parallel edges
-        [ 1,  0,  1], [-1,  0,  1], [-1,  0, -1], [ 1,  0, -1],
-        // 4 X-parallel edges
-        [ 0,  1,  1], [ 0, -1,  1], [ 0, -1, -1], [ 0,  1, -1]
-      ];
-
-      // 6 Face Centers & Normals: +Z, -Z, +X, -X, +Y, -Y
-      const FACE_CENTERS = [
-        [ 0,  0,  1], [ 0,  0, -1],
-        [ 1,  0,  0], [-1,  0,  0],
-        [ 0,  1,  0], [ 0, -1,  0]
-      ];
-
-      // Handcrafted Secondary Face Dent Offsets (creating organic irregular craters)
-      const FACE_DENT_OFFSETS = [
-        [ 0.28,  0.35], [-0.32, -0.22],
-        [-0.25,  0.40], [ 0.35, -0.30],
-        [ 0.30, -0.35], [-0.20,  0.25]
-      ];
-
-      // Universal Continuous Dent Displacement Field D(x, y, z)
-      // Because this is an analytic function of 3D world coordinates (x,y,z),
-      // it is GUARANTEED to be 100% continuous across all face boundaries, edges, and corners!
-      function computeDentDisplacement(px, py, pz) {
-        if (config.morph <= 0.001) return [0, 0, 0];
-
-        let totalInward = 0.0;
-
-        // 1. Corner Dents
-        const rCornSq = config.cornerRadius * config.cornerRadius;
-        for (let i = 0; i < 8; i++) {
-          const c = CORNER_POINTS[i];
-          const dx = px - c[0];
-          const dy = py - c[1];
-          const dz = pz - c[2];
-          const distSq = dx * dx + dy * dy + dz * dz;
-          if (distSq < rCornSq) {
-            const t = 1.0 - distSq / rCornSq;
-            // Smooth quadratic bell falloff
-            totalInward += currentCornerMask[i] * config.cornerDepth * (t * t);
-          }
-        }
-
-        // 2. Edge Notches
-        const rEdgeSq = config.edgeRadius * config.edgeRadius;
-        for (let j = 0; j < 12; j++) {
-          const e = EDGE_CENTERS[j];
-          const dx = px - e[0];
-          const dy = py - e[1];
-          const dz = pz - e[2];
-          const distSq = dx * dx + dy * dy + dz * dz;
-          if (distSq < rEdgeSq) {
-            const t = 1.0 - distSq / rEdgeSq;
-            totalInward += currentEdgeMask[j] * config.edgeDepth * (t * t);
-          }
-        }
-
-        // 3. Face Craters
-        const rFaceSq = config.faceRadius * config.faceRadius;
-        for (let m = 0; m < 6; m++) {
-          const fc = FACE_CENTERS[m];
-          const off = FACE_DENT_OFFSETS[m];
-          // Primary crater
-          let cx = fc[0] === 0 ? off[0] : fc[0];
-          let cy = fc[1] === 0 ? (fc[0] === 0 ? off[1] : off[0]) : fc[1];
-          let cz = fc[2] === 0 ? off[1] : fc[2];
-
-          const dx = px - cx;
-          const dy = py - cy;
-          const dz = pz - cz;
-          const distSq = dx * dx + dy * dy + dz * dz;
-          if (distSq < rFaceSq) {
-            const t = 1.0 - distSq / rFaceSq;
-            totalInward += currentFaceMask[m] * config.faceDepth * (t * t);
-          }
-        }
-
-        // 4. Multi-frequency Organic 3D Noise
-        if (config.noiseAmount > 0.001) {
-          const n1 = smoothNoise3D(px * 1.8 + 1.2, py * 1.8 + 2.4, pz * 1.8 + 3.1);
-          const n2 = smoothNoise3D(px * 3.6 + 4.1, py * 3.6 + 5.7, pz * 3.6 + 6.3);
-          const rawNoise = (n1 * 0.7 + n2 * 0.3);
-          // Modulate noise to push mostly inward
-          totalInward += config.noiseAmount * Math.max(-0.2, rawNoise * 0.6);
-        }
-
-        // Apply global morph factor
-        totalInward *= config.morph;
-
-        // Inward displacement direction toward cube center with distance dampening
-        const len = Math.hypot(px, py, pz) || 1.0;
-        const dirX = -px / len;
-        const dirY = -py / len;
-        const dirZ = -pz / len;
-
-        return [
-          dirX * totalInward,
-          dirY * totalInward,
-          dirZ * totalInward
+        // 1. Missing Corner Blocks (orthogonal cubical bites out of corners)
+        // 8 Corners of the cube
+        const corners = [
+          [0, 0, 0], [N-1, 0, 0], [0, N-1, 0], [N-1, N-1, 0],
+          [0, 0, N-1], [N-1, 0, N-1], [0, N-1, N-1], [N-1, N-1, N-1]
         ];
-      }
 
-      // Evaluates deformed point on face f at UV coordinate (u, v) in [-1, 1]
-      const faceBases = [
-        // +Z
-        { n: [0, 0, 1], tu: [1, 0, 0], tv: [0, 1, 0] },
-        // -Z
-        { n: [0, 0,-1], tu: [-1, 0, 0], tv: [0, 1, 0] },
-        // +X
-        { n: [1, 0, 0], tu: [0, 0,-1], tv: [0, 1, 0] },
-        // -X
-        { n: [-1, 0, 0], tu: [0, 0, 1], tv: [0, 1, 0] },
-        // +Y
-        { n: [0, 1, 0], tu: [1, 0, 0], tv: [0, 0,-1] },
-        // -Y
-        { n: [0,-1, 0], tu: [1, 0, 0], tv: [0, 0, 1] }
-      ];
+        // Shuffle corners
+        const shuffledCorners = [...corners].sort(() => rng() - 0.5);
+        const cornersToCarve = Math.min(config.numCorners, 8);
 
-      function getDentedPoint(faceIdx, uCoord, vCoord) {
-        const b = faceBases[faceIdx];
-        const flatX = uCoord * b.tu[0] + vCoord * b.tv[0] + b.n[0];
-        const flatY = uCoord * b.tu[1] + vCoord * b.tv[1] + b.n[1];
-        const flatZ = uCoord * b.tu[2] + vCoord * b.tv[2] + b.n[2];
+        for (let c = 0; c < cornersToCarve; c++) {
+          const [cx, cy, cz] = shuffledCorners[c];
+          // Vary the corner block cutout size (e.g. 2x2x2, 3x2x3, or 3x3x3)
+          const sx = Math.min(N - 1, Math.max(1, config.cornerSize - Math.floor(rng() * 1.5)));
+          const sy = Math.min(N - 1, Math.max(1, config.cornerSize - Math.floor(rng() * 1.5)));
+          const sz = Math.min(N - 1, Math.max(1, config.cornerSize - Math.floor(rng() * 1.5)));
 
-        const disp = computeDentDisplacement(flatX, flatY, flatZ);
-        return [
-          flatX + disp[0],
-          flatY + disp[1],
-          flatZ + disp[2]
-        ];
-      }
+          const x0 = cx === 0 ? 0 : N - sx;
+          const x1 = cx === 0 ? sx : N;
+          const y0 = cy === 0 ? 0 : N - sy;
+          const y1 = cy === 0 ? sy : N;
+          const z0 = cz === 0 ? 0 : N - sz;
+          const z1 = cz === 0 ? sz : N;
 
-      // Finite-difference Normal Vector Calculation for high-fidelity specular shading
-      function getDentedNormal(faceIdx, uCoord, vCoord) {
-        const eps = 0.015;
-        const pC = getDentedPoint(faceIdx, uCoord, vCoord);
-        const pU = getDentedPoint(faceIdx, Math.min(1.0, uCoord + eps), vCoord);
-        const pV = getDentedPoint(faceIdx, uCoord, Math.min(1.0, vCoord + eps));
-
-        const duX = pU[0] - pC[0], duY = pU[1] - pC[1], duZ = pU[2] - pC[2];
-        const dvX = pV[0] - pC[0], dvY = pV[1] - pC[1], dvZ = pV[2] - pC[2];
-
-        // Cross product: du x dv
-        let nx = duY * dvZ - duZ * dvY;
-        let ny = duZ * dvX - duX * dvZ;
-        let nz = duX * dvY - duY * dvX;
-
-        // Ensure outward pointing
-        const b = faceBases[faceIdx];
-        const dotBase = nx * b.n[0] + ny * b.n[1] + nz * b.n[2];
-        if (dotBase < 0) {
-          nx = -nx; ny = -ny; nz = -nz;
+          for (let z = z0; z < z1; z++) {
+            for (let y = y0; y < y1; y++) {
+              for (let x = x0; x < x1; x++) {
+                voxels[x + y * N + z * N * N] = 0;
+              }
+            }
+          }
         }
 
-        const len = Math.hypot(nx, ny, nz) || 1.0;
-        return [nx / len, ny / len, nz / len];
+        // 2. Missing Edge Trenches (stepped trenches carved along edges)
+        // 12 Edges defined by axis and the 2 fixed coordinates
+        const edges = [
+          // 4 Z-edges
+          { axis: 'z', x: 0,   y: 0 },
+          { axis: 'z', x: N-1, y: 0 },
+          { axis: 'z', x: 0,   y: N-1 },
+          { axis: 'z', x: N-1, y: N-1 },
+          // 4 Y-edges
+          { axis: 'y', x: 0,   z: 0 },
+          { axis: 'y', x: N-1, z: 0 },
+          { axis: 'y', x: 0,   z: N-1 },
+          { axis: 'y', x: N-1, z: N-1 },
+          // 4 X-edges
+          { axis: 'x', y: 0,   z: 0 },
+          { axis: 'x', y: N-1, z: 0 },
+          { axis: 'x', y: 0,   z: N-1 },
+          { axis: 'x', y: N-1, z: N-1 }
+        ];
+
+        const shuffledEdges = [...edges].sort(() => rng() - 0.5);
+        const edgesToCarve = Math.min(config.numEdges, 12);
+
+        for (let e = 0; e < edgesToCarve; e++) {
+          const edge = shuffledEdges[e];
+          const depth = Math.min(config.maxDepth, 2);
+          const tLen = Math.floor(N * 0.30 + rng() * N * 0.35); // length of trench
+          const tStart = Math.floor(rng() * (N - tLen));
+
+          if (edge.axis === 'z') {
+            const x0 = edge.x === 0 ? 0 : N - depth;
+            const x1 = edge.x === 0 ? depth : N;
+            const y0 = edge.y === 0 ? 0 : N - depth;
+            const y1 = edge.y === 0 ? depth : N;
+            for (let z = tStart; z < tStart + tLen; z++) {
+              for (let y = y0; y < y1; y++) {
+                for (let x = x0; x < x1; x++) {
+                  voxels[x + y * N + z * N * N] = 0;
+                }
+              }
+            }
+          } else if (edge.axis === 'y') {
+            const x0 = edge.x === 0 ? 0 : N - depth;
+            const x1 = edge.x === 0 ? depth : N;
+            const z0 = edge.z === 0 ? 0 : N - depth;
+            const z1 = edge.z === 0 ? depth : N;
+            for (let y = tStart; y < tStart + tLen; y++) {
+              for (let z = z0; z < z1; z++) {
+                for (let x = x0; x < x1; x++) {
+                  voxels[x + y * N + z * N * N] = 0;
+                }
+              }
+            }
+          } else {
+            const y0 = edge.y === 0 ? 0 : N - depth;
+            const y1 = edge.y === 0 ? depth : N;
+            const z0 = edge.z === 0 ? 0 : N - depth;
+            const z1 = edge.z === 0 ? depth : N;
+            for (let x = tStart; x < tStart + tLen; x++) {
+              for (let z = z0; z < z1; z++) {
+                for (let y = y0; y < y1; y++) {
+                  voxels[x + y * N + z * N * N] = 0;
+                }
+              }
+            }
+          }
+        }
+
+        // 3. Missing Face Pockets / Alcoves (rectangular groups of mini-cubes removed from faces)
+        for (let p = 0; p < config.numFaces; p++) {
+          const face = Math.floor(rng() * 6);
+          const pw = Math.floor(1 + rng() * 3); // 1x1, 2x2, or 3x2 pocket
+          const ph = Math.floor(1 + rng() * 3);
+          const pDepth = Math.min(config.maxDepth, Math.floor(1 + rng() * 1.5));
+
+          if (face === 0) { // +Z face (z = N-1)
+            const x0 = Math.floor(2 + rng() * (N - pw - 4));
+            const y0 = Math.floor(2 + rng() * (N - ph - 4));
+            for (let z = N - pDepth; z < N; z++) {
+              for (let y = y0; y < y0 + ph; y++) {
+                for (let x = x0; x < x0 + pw; x++) {
+                  voxels[x + y * N + z * N * N] = 0;
+                }
+              }
+            }
+          } else if (face === 1) { // -Z face (z = 0)
+            const x0 = Math.floor(2 + rng() * (N - pw - 4));
+            const y0 = Math.floor(2 + rng() * (N - ph - 4));
+            for (let z = 0; z < pDepth; z++) {
+              for (let y = y0; y < y0 + ph; y++) {
+                for (let x = x0; x < x0 + pw; x++) {
+                  voxels[x + y * N + z * N * N] = 0;
+                }
+              }
+            }
+          } else if (face === 2) { // +X face (x = N-1)
+            const y0 = Math.floor(2 + rng() * (N - pw - 4));
+            const z0 = Math.floor(2 + rng() * (N - ph - 4));
+            for (let x = N - pDepth; x < N; x++) {
+              for (let z = z0; z < z0 + ph; z++) {
+                for (let y = y0; y < y0 + pw; y++) {
+                  voxels[x + y * N + z * N * N] = 0;
+                }
+              }
+            }
+          } else if (face === 3) { // -X face (x = 0)
+            const y0 = Math.floor(2 + rng() * (N - pw - 4));
+            const z0 = Math.floor(2 + rng() * (N - ph - 4));
+            for (let x = 0; x < pDepth; x++) {
+              for (let z = z0; z < z0 + ph; z++) {
+                for (let y = y0; y < y0 + pw; y++) {
+                  voxels[x + y * N + z * N * N] = 0;
+                }
+              }
+            }
+          } else if (face === 4) { // +Y face (y = N-1)
+            const x0 = Math.floor(2 + rng() * (N - pw - 4));
+            const z0 = Math.floor(2 + rng() * (N - ph - 4));
+            for (let y = N - pDepth; y < N; y++) {
+              for (let z = z0; z < z0 + ph; z++) {
+                for (let x = x0; x < x0 + pw; x++) {
+                  voxels[x + y * N + z * N * N] = 0;
+                }
+              }
+            }
+          } else { // -Y face (y = 0)
+            const x0 = Math.floor(2 + rng() * (N - pw - 4));
+            const z0 = Math.floor(2 + rng() * (N - ph - 4));
+            for (let y = 0; y < pDepth; y++) {
+              for (let z = z0; z < z0 + ph; z++) {
+                for (let x = x0; x < x0 + pw; x++) {
+                  voxels[x + y * N + z * N * N] = 0;
+                }
+              }
+            }
+          }
+        }
       }
+
+      // Direction Vectors for 6 Neighbor Faces
+      const DIRS = [
+        { dir: [ 1,  0,  0], n: [ 1,  0,  0], u: [0, 0,-1], v: [0, 1, 0] }, // +X
+        { dir: [-1,  0,  0], n: [-1,  0,  0], u: [0, 0, 1], v: [0, 1, 0] }, // -X
+        { dir: [ 0,  1,  0], n: [ 0,  1,  0], u: [1, 0, 0], v: [0, 0,-1] }, // +Y
+        { dir: [ 0, -1,  0], n: [ 0, -1,  0], u: [1, 0, 0], v: [0, 0, 1] }, // -Y
+        { dir: [ 0,  0,  1], n: [ 0,  0,  1], u: [1, 0, 0], v: [0, 1, 0] }, // +Z
+        { dir: [ 0,  0, -1], n: [ 0,  0, -1], u: [-1, 0, 0], v: [0, 1, 0] } // -Z
+      ];
 
       // Shader Sources
       const vsSource = `
         attribute vec3 aPosition;
         attribute vec3 aNormal;
         attribute vec2 aUV;
-        attribute vec4 aColor;
+        attribute float aDepth; // 0.0 = original outer face, >0.0 = recessed step cavity
 
         uniform mat4 uMVP;
         uniform mat4 uModelView;
@@ -870,14 +892,14 @@
         varying vec3 vNormal;
         varying vec3 vViewPos;
         varying vec2 vUV;
-        varying vec4 vColor;
+        varying float vDepth;
 
         void main() {
           vNormal = normalize(mat3(uModelView) * aNormal);
           vec4 mvPos = uModelView * vec4(aPosition, 1.0);
           vViewPos = mvPos.xyz;
           vUV = aUV;
-          vColor = aColor;
+          vDepth = aDepth;
           gl_Position = uMVP * vec4(aPosition, 1.0);
         }
       `;
@@ -888,9 +910,9 @@
         varying vec3 vNormal;
         varying vec3 vViewPos;
         varying vec2 vUV;
-        varying vec4 vColor;
+        varying float vDepth;
 
-        uniform int uShadingMode; // 0=clay, 1=glass, 2=normals, 3=wireframe
+        uniform int uShadingMode; // 0=clay, 1=glass, 2=cavity, 3=wireframe
         uniform float uIsLight;
         uniform float uShowGrid;
 
@@ -898,22 +920,14 @@
           vec3 N = normalize(vNormal);
           vec3 V = normalize(-vViewPos);
 
-          // Grid wireframe line pattern
-          vec2 gridUV = fract(vUV * 31.0);
+          // Grid wireframe outline for each individual mini-cube block face
+          vec2 gridUV = fract(vUV);
           float edgeDist = min(min(gridUV.x, 1.0 - gridUV.x), min(gridUV.y, 1.0 - gridUV.y));
-          float gridLine = (uShowGrid > 0.5 && edgeDist < 0.065) ? 1.0 : 0.0;
+          float gridLine = (uShowGrid > 0.5 && edgeDist < 0.055) ? 1.0 : 0.0;
 
-          // Mode 2: Normals visualization
-          if (uShadingMode == 2) {
-            vec3 nCol = N * 0.5 + 0.5;
-            if (gridLine > 0.5) nCol *= 0.75;
-            gl_FragColor = vec4(nCol, 1.0);
-            return;
-          }
-
-          // Lighting directions
-          vec3 L1 = normalize(vec3(0.5, 0.9, 0.8));
-          vec3 L2 = normalize(vec3(-0.8, -0.4, -0.6));
+          // Studio Lighting Directions
+          vec3 L1 = normalize(vec3(0.6, 0.85, 0.75));
+          vec3 L2 = normalize(vec3(-0.7, -0.4, -0.6));
           vec3 L3 = normalize(vec3(0.0, -1.0, 0.3));
 
           float diff1 = max(0.0, dot(N, L1));
@@ -922,23 +936,35 @@
 
           // Specular highlights
           vec3 H1 = normalize(L1 + V);
-          float spec1 = pow(max(0.0, dot(N, H1)), 38.0) * 0.45;
+          float spec1 = pow(max(0.0, dot(N, H1)), 34.0) * 0.40;
 
-          // Subtle rim lighting
-          float fresnel = pow(1.0 - max(0.0, dot(N, V)), 2.6);
+          // Rim lighting
+          float fresnel = pow(1.0 - max(0.0, dot(N, V)), 2.8);
+
+          // Mode 2: Recessed Depth Visualization (missing blocks highlighted)
+          if (uShadingMode == 2) {
+            vec3 baseOuter = uIsLight > 0.5 ? vec3(0.92, 0.95, 0.98) : vec3(0.20, 0.25, 0.34);
+            vec3 cavityTint = uIsLight > 0.5 ? vec3(0.98, 0.42, 0.25) : vec3(0.95, 0.55, 0.30); // amber-orange for carved interior
+            vec3 col = mix(baseOuter, cavityTint, clamp(vDepth * 0.55, 0.0, 0.85));
+            col *= (diff1 * 0.75 + diff2 + 0.30);
+            if (gridLine > 0.5) col *= 0.75;
+            gl_FragColor = vec4(col, 1.0);
+            return;
+          }
 
           if (uShadingMode == 0) {
             // Matte Architectural Clay Mode
-            vec3 baseColor = uIsLight > 0.5 ? vec3(0.93, 0.94, 0.96) : vec3(0.18, 0.22, 0.29);
+            vec3 baseColor = uIsLight > 0.5 ? vec3(0.94, 0.95, 0.97) : vec3(0.18, 0.22, 0.29);
+            // Recessed cavity blocks have subtle realistic ambient occlusion
+            float ao = 1.0 - min(0.35, vDepth * 0.18);
             vec3 ambient = uIsLight > 0.5 ? vec3(0.25, 0.27, 0.30) : vec3(0.07, 0.09, 0.13);
-            vec3 diffuse = (diff1 * vec3(0.85, 0.85, 0.85) + diff2 * vec3(0.6, 0.65, 0.75) + diff3 * vec3(0.4, 0.4, 0.4));
-            
-            // Soft cavity shading in dents
-            float cavity = clamp(dot(N, vec3(0.0, 1.0, 0.0)) * 0.2 + 0.85, 0.7, 1.0);
-            vec3 finalColor = (ambient + diffuse * cavity) * baseColor + vec3(spec1);
+            vec3 diffuse = (diff1 * vec3(0.85) + diff2 * vec3(0.65, 0.70, 0.80) + diff3 * vec3(0.40));
 
+            vec3 finalColor = (ambient + diffuse) * baseColor * ao + vec3(spec1);
+
+            // Emphasize the grid lines on blocks
             if (gridLine > 0.5) {
-              finalColor = mix(finalColor, uIsLight > 0.5 ? vec3(0.15, 0.25, 0.38) : vec3(0.55, 0.75, 0.95), 0.38);
+              finalColor = mix(finalColor, uIsLight > 0.5 ? vec3(0.15, 0.25, 0.38) : vec3(0.55, 0.75, 0.95), 0.45);
             }
             gl_FragColor = vec4(finalColor, 1.0);
             return;
@@ -948,19 +974,25 @@
             // PartiCube Translucent Glass Mode
             vec3 glassTint = uIsLight > 0.5 ? vec3(0.88, 0.94, 0.98) : vec3(0.12, 0.18, 0.28);
             vec3 rimColor = uIsLight > 0.5 ? vec3(0.15, 0.60, 0.90) : vec3(0.35, 0.80, 1.0);
-            
-            vec3 col = glassTint * (diff1 * 0.6 + 0.4) + rimColor * fresnel * 0.85 + vec3(spec1 * 1.2);
-            if (gridLine > 0.5) {
-              col += (uIsLight > 0.5 ? vec3(0.05, 0.35, 0.65) : vec3(0.2, 0.6, 0.9)) * 0.4;
+
+            // Missing recessed blocks catch glowing refraction
+            if (vDepth > 0.1) {
+              glassTint = mix(glassTint, uIsLight > 0.5 ? vec3(0.65, 0.88, 1.0) : vec3(0.22, 0.45, 0.75), 0.45);
             }
-            gl_FragColor = vec4(col, 0.92);
+
+            vec3 col = glassTint * (diff1 * 0.6 + 0.4) + rimColor * fresnel * 0.9 + vec3(spec1 * 1.3);
+            if (gridLine > 0.5) {
+              col += (uIsLight > 0.5 ? vec3(0.05, 0.35, 0.65) : vec3(0.2, 0.6, 0.9)) * 0.45;
+            }
+            gl_FragColor = vec4(col, 0.94);
             return;
           }
 
           if (uShadingMode == 3) {
-            // Pure Wireframe / Grid
+            // Pure Wireframe Mode
             vec3 wireCol = uIsLight > 0.5 ? vec3(0.05, 0.35, 0.65) : vec3(0.35, 0.75, 1.0);
-            float alpha = (gridLine > 0.5) ? 0.9 : 0.12;
+            if (vDepth > 0.1) wireCol = uIsLight > 0.5 ? vec3(0.9, 0.4, 0.1) : vec3(1.0, 0.6, 0.2);
+            float alpha = (gridLine > 0.5) ? 0.95 : 0.15;
             gl_FragColor = vec4(wireCol, alpha);
             return;
           }
@@ -983,15 +1015,12 @@
       gl.attachShader(prog, createShader(gl.VERTEX_SHADER, vsSource));
       gl.attachShader(prog, createShader(gl.FRAGMENT_SHADER, fsSource));
       gl.linkProgram(prog);
-      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-        console.error(gl.getProgramInfoLog(prog));
-      }
 
       const attribs = {
         pos: gl.getAttribLocation(prog, 'aPosition'),
         norm: gl.getAttribLocation(prog, 'aNormal'),
         uv: gl.getAttribLocation(prog, 'aUV'),
-        col: gl.getAttribLocation(prog, 'aColor')
+        depth: gl.getAttribLocation(prog, 'aDepth')
       };
       const uniforms = {
         uMVP: gl.getUniformLocation(prog, 'uMVP'),
@@ -1001,7 +1030,7 @@
         uShowGrid: gl.getUniformLocation(prog, 'uShowGrid')
       };
 
-      // Edge Outline Shader
+      // Step Edge Highlight Lines Shader
       const edgeVsSource = `
         attribute vec3 aPosition;
         uniform mat4 uMVP;
@@ -1030,54 +1059,89 @@
       let edgeBuffer = gl.createBuffer();
       let edgeVertexCount = 0;
 
-      // Rebuild 3D Mesh
-      function rebuildDentedMesh() {
-        const N = config.subdivisions;
-        const totalFaces = 6;
-        // 6 faces * N * N quads * 6 vertices per quad = 36 * N * N vertices
-        const vertexCount = totalFaces * N * N * 6;
-        // 11 floats per vertex: x, y, z, nx, ny, nz, u, v, r, g, b
-        const vertexData = new Float32Array(vertexCount * 11);
+      // Rebuild Voxel Surface Mesh
+      function rebuildVoxelMesh() {
+        generateVoxelCube();
+
+        const N = config.N;
+        const step = 2.0 / N;
+        const halfStep = step * 0.5;
+
+        // Estimate max quads: 6 * N * N * 2
+        const maxQuads = N * N * 14;
+        const vertexData = new Float32Array(maxQuads * 6 * 9); // 9 floats per vertex: x,y,z, nx,ny,nz, u,v, depth
         let ptr = 0;
 
-        for (let f = 0; f < 6; f++) {
-          for (let i = 0; i < N; i++) {
-            for (let j = 0; j < N; j++) {
-              const u0 = -1.0 + (i / N) * 2.0;
-              const u1 = -1.0 + ((i + 1) / N) * 2.0;
-              const v0 = -1.0 + (j / N) * 2.0;
-              const v1 = -1.0 + ((j + 1) / N) * 2.0;
+        const edgeLines = [];
 
-              const uv_u0 = i / N;
-              const uv_u1 = (i + 1) / N;
-              const uv_v0 = j / N;
-              const uv_v1 = (j + 1) / N;
+        function isSolid(x, y, z) {
+          if (x < 0 || x >= N || y < 0 || y >= N || z < 0 || z >= N) return false;
+          return voxels[x + y * N + z * N * N] === 1;
+        }
 
-              // 4 corners of the quad
-              const p00 = getDentedPoint(f, u0, v0);
-              const p10 = getDentedPoint(f, u1, v0);
-              const p11 = getDentedPoint(f, u1, v1);
-              const p01 = getDentedPoint(f, u0, v1);
+        // Iterate all voxels and extract exposed boundary faces
+        for (let z = 0; z < N; z++) {
+          for (let y = 0; y < N; y++) {
+            for (let x = 0; x < N; x++) {
+              if (voxels[x + y * N + z * N * N] !== 1) continue;
 
-              const n00 = getDentedNormal(f, u0, v0);
-              const n10 = getDentedNormal(f, u1, v0);
-              const n11 = getDentedNormal(f, u1, v1);
-              const n01 = getDentedNormal(f, u0, v1);
+              // Center of this mini-cube in [-1, 1] range
+              const cx = -1.0 + (x + 0.5) * step;
+              const cy = -1.0 + (y + 0.5) * step;
+              const cz = -1.0 + (z + 0.5) * step;
 
-              // Triangle 1: p00, p10, p11
-              addVertex(p00, n00, uv_u0, uv_v0);
-              addVertex(p10, n10, uv_u1, uv_v0);
-              addVertex(p11, n11, uv_u1, uv_v1);
+              // Check all 6 face directions
+              for (let d = 0; d < 6; d++) {
+                const info = DIRS[d];
+                const nx = x + info.dir[0];
+                const ny = y + info.dir[1];
+                const nz = z + info.dir[2];
 
-              // Triangle 2: p00, p11, p01
-              addVertex(p00, n00, uv_u0, uv_v0);
-              addVertex(p11, n11, uv_u1, uv_v1);
-              addVertex(p01, n01, uv_u0, uv_v1);
+                if (!isSolid(nx, ny, nz)) {
+                  // This face is exposed!
+                  // Calculate its depth from the outer cube boundary
+                  let depthFromOuter = 0;
+                  if (d === 0) depthFromOuter = (N - 1) - x;      // +X
+                  else if (d === 1) depthFromOuter = x;          // -X
+                  else if (d === 2) depthFromOuter = (N - 1) - y; // +Y
+                  else if (d === 3) depthFromOuter = y;          // -Y
+                  else if (d === 4) depthFromOuter = (N - 1) - z; // +Z
+                  else if (d === 5) depthFromOuter = z;          // -Z
+
+                  // Center of the exposed quad face
+                  const fx = cx + info.n[0] * halfStep;
+                  const fy = cy + info.n[1] * halfStep;
+                  const fz = cz + info.n[2] * halfStep;
+
+                  // 4 corners of the quad face
+                  const uX = info.u[0] * halfStep, uY = info.u[1] * halfStep, uZ = info.u[2] * halfStep;
+                  const vX = info.v[0] * halfStep, vY = info.v[1] * halfStep, vZ = info.v[2] * halfStep;
+
+                  const p00 = [fx - uX - vX, fy - uY - vY, fz - uZ - vZ];
+                  const p10 = [fx + uX - vX, fy + uY - vY, fz + uZ - vZ];
+                  const p11 = [fx + uX + vX, fy + uY + vY, fz + uZ + vZ];
+                  const p01 = [fx - uX + vX, fy - uY + vY, fz - uZ + vZ];
+
+                  // Add 2 triangles: p00-p10-p11 and p00-p11-p01
+                  addVertex(p00, info.n, 0.0, 0.0, depthFromOuter);
+                  addVertex(p10, info.n, 1.0, 0.0, depthFromOuter);
+                  addVertex(p11, info.n, 1.0, 1.0, depthFromOuter);
+
+                  addVertex(p00, info.n, 0.0, 0.0, depthFromOuter);
+                  addVertex(p11, info.n, 1.0, 1.0, depthFromOuter);
+                  addVertex(p01, info.n, 0.0, 1.0, depthFromOuter);
+
+                  // If this is a step edge (depthFromOuter > 0 or neighbor drops into a missing block), add edge segment
+                  if (depthFromOuter > 0 || (x === 0 || x === N-1 || y === 0 || y === N-1 || z === 0 || z === N-1)) {
+                    edgeLines.push(p00, p10, p10, p11, p11, p01, p01, p00);
+                  }
+                }
+              }
             }
           }
         }
 
-        function addVertex(p, n, u, v) {
+        function addVertex(p, n, u, v, depth) {
           vertexData[ptr++] = p[0];
           vertexData[ptr++] = p[1];
           vertexData[ptr++] = p[2];
@@ -1086,53 +1150,29 @@
           vertexData[ptr++] = n[2];
           vertexData[ptr++] = u;
           vertexData[ptr++] = v;
-          vertexData[ptr++] = 1.0;
-          vertexData[ptr++] = 1.0;
-          vertexData[ptr++] = 1.0;
+          vertexData[ptr++] = depth;
         }
 
-        meshVertexCount = vertexCount;
+        meshVertexCount = ptr / 9;
         gl.bindBuffer(gl.ARRAY_BUFFER, meshBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, vertexData, gl.DYNAMIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, vertexData.subarray(0, ptr), gl.DYNAMIC_DRAW);
 
-        // Rebuild 12 Edge Lines tracing the dented perimeter
-        const edgeSegsPerEdge = N;
-        const edgeData = new Float32Array(12 * edgeSegsPerEdge * 2 * 3);
+        // Edge Buffer
+        const edgeData = new Float32Array(edgeLines.length * 3);
         let ePtr = 0;
-
-        // Trace the 12 bounding edges by sampling getDentedPoint
-        function addEdgeSegment(pA, pB) {
-          edgeData[ePtr++] = pA[0]; edgeData[ePtr++] = pA[1]; edgeData[ePtr++] = pA[2];
-          edgeData[ePtr++] = pB[0]; edgeData[ePtr++] = pB[1]; edgeData[ePtr++] = pB[2];
+        for (let i = 0; i < edgeLines.length; i++) {
+          edgeData[ePtr++] = edgeLines[i][0];
+          edgeData[ePtr++] = edgeLines[i][1];
+          edgeData[ePtr++] = edgeLines[i][2];
         }
-
-        // Face 0 (+Z): 4 perimeters
-        for (let s = 0; s < N; s++) {
-          const t0 = -1 + (s / N) * 2;
-          const t1 = -1 + ((s + 1) / N) * 2;
-          // Bottom & Top
-          addEdgeSegment(getDentedPoint(0, t0, -1), getDentedPoint(0, t1, -1));
-          addEdgeSegment(getDentedPoint(0, t0,  1), getDentedPoint(0, t1,  1));
-          // Left & Right
-          addEdgeSegment(getDentedPoint(0, -1, t0), getDentedPoint(0, -1, t1));
-          addEdgeSegment(getDentedPoint(0,  1, t0), getDentedPoint(0,  1, t1));
-
-          // Face 1 (-Z): 4 perimeters
-          addEdgeSegment(getDentedPoint(1, t0, -1), getDentedPoint(1, t1, -1));
-          addEdgeSegment(getDentedPoint(1, t0,  1), getDentedPoint(1, t1,  1));
-          addEdgeSegment(getDentedPoint(1, -1, t0), getDentedPoint(1, -1, t1));
-          addEdgeSegment(getDentedPoint(1,  1, t0), getDentedPoint(1,  1, t1));
-
-          // 4 connecting Z-edges on Face 2 & 3
-          addEdgeSegment(getDentedPoint(2, t0, -1), getDentedPoint(2, t1, -1));
-          addEdgeSegment(getDentedPoint(2, t0,  1), getDentedPoint(2, t1,  1));
-          addEdgeSegment(getDentedPoint(3, t0, -1), getDentedPoint(3, t1, -1));
-          addEdgeSegment(getDentedPoint(3, t0,  1), getDentedPoint(3, t1,  1));
-        }
-
-        edgeVertexCount = ePtr / 3;
+        edgeVertexCount = edgeLines.length;
         gl.bindBuffer(gl.ARRAY_BUFFER, edgeBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, edgeData.subarray(0, ePtr), gl.DYNAMIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, edgeData, gl.DYNAMIC_DRAW);
+
+        const meshInfo = document.getElementById('mesh-info');
+        if (meshInfo) {
+          meshInfo.textContent = `Voxel Mesh • ${N}³ Blocks • ${Math.round(meshVertexCount / 6)} Exposed Block Faces`;
+        }
       }
 
       // Camera & Arcball Orbit Controls
@@ -1144,7 +1184,6 @@
       let targetZoom = 1.0;
       let isDragging = false;
       let lastX = 0, lastY = 0;
-      let velX = 0, velY = 0;
 
       // 4x4 Matrix Utilities
       function mat4Create() { return new Float32Array(16); }
@@ -1241,7 +1280,6 @@
         rotY += (targetRotY - rotY) * 0.15;
         zoom += (targetZoom - zoom) * 0.15;
 
-        // Clear color based on light/dark mode
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.enable(gl.DEPTH_TEST);
@@ -1256,13 +1294,11 @@
         mat4Identity(vMatrix);
         vMatrix[14] = -dist; // translate Z
 
-        // Rotate X and Y
         const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
         const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
 
         const rotM = mat4Create();
         mat4Identity(rotM);
-        // Combine Y then X rotation
         rotM[0] = cosY; rotM[2] = sinY;
         rotM[4] = sinX * sinY; rotM[5] = cosX; rotM[6] = -sinX * cosY;
         rotM[8] = -cosX * sinY; rotM[9] = sinX; rotM[10] = cosX * cosY;
@@ -1270,34 +1306,34 @@
         mat4Multiply(vMatrix, vMatrix, rotM);
         mat4Multiply(mvpMatrix, pMatrix, vMatrix);
 
-        // Render Dented Cube Mesh
+        // 1. Render Voxel Mesh
         gl.useProgram(prog);
         gl.uniformMatrix4fv(uniforms.uMVP, false, mvpMatrix);
         gl.uniformMatrix4fv(uniforms.uModelView, false, vMatrix);
-        gl.uniform1i(uniforms.uShadingMode, config.shadingMode === 'clay' ? 0 : (config.shadingMode === 'glass' ? 1 : (config.shadingMode === 'normals' ? 2 : 3)));
+        gl.uniform1i(uniforms.uShadingMode, config.shadingMode === 'clay' ? 0 : (config.shadingMode === 'glass' ? 1 : (config.shadingMode === 'cavity' ? 2 : 3)));
         gl.uniform1f(uniforms.uIsLight, isLight ? 1.0 : 0.0);
         gl.uniform1f(uniforms.uShowGrid, config.showGrid ? 1.0 : 0.0);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, meshBuffer);
-        const stride = 11 * 4;
+        const stride = 9 * 4;
         gl.enableVertexAttribArray(attribs.pos);
         gl.vertexAttribPointer(attribs.pos, 3, gl.FLOAT, false, stride, 0);
         gl.enableVertexAttribArray(attribs.norm);
         gl.vertexAttribPointer(attribs.norm, 3, gl.FLOAT, false, stride, 12);
         gl.enableVertexAttribArray(attribs.uv);
         gl.vertexAttribPointer(attribs.uv, 2, gl.FLOAT, false, stride, 24);
-        gl.enableVertexAttribArray(attribs.col);
-        gl.vertexAttribPointer(attribs.col, 3, gl.FLOAT, false, stride, 32);
+        gl.enableVertexAttribArray(attribs.depth);
+        gl.vertexAttribPointer(attribs.depth, 1, gl.FLOAT, false, stride, 32);
 
         gl.drawArrays(gl.TRIANGLES, 0, meshVertexCount);
 
-        // Optional 12 Edge Lines Overlay
-        if (config.showEdges) {
+        // 2. Render Step Edge Lines
+        if (config.showStepEdges) {
           gl.disable(gl.CULL_FACE);
           gl.depthMask(false);
           gl.useProgram(edgeProg);
           gl.uniformMatrix4fv(edgeMVPUni, false, mvpMatrix);
-          const edgeCol = isLight ? [0.08, 0.45, 0.75, 0.90] : [0.25, 0.75, 1.0, 0.90];
+          const edgeCol = isLight ? [0.08, 0.45, 0.75, 0.75] : [0.25, 0.75, 1.0, 0.75];
           gl.uniform4fv(edgeColUni, edgeCol);
 
           gl.bindBuffer(gl.ARRAY_BUFFER, edgeBuffer);
@@ -1316,8 +1352,6 @@
         isDragging = true;
         lastX = e.clientX;
         lastY = e.clientY;
-        velX = 0;
-        velY = 0;
         try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
       });
 
@@ -1359,20 +1393,17 @@
           document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
           const key = btn.getAttribute('data-preset');
-          activePresetKey = key;
           const p = presets[key];
           if (!p) return;
 
-          config.cornerDepth = p.cornerDepth;
-          config.edgeDepth = p.edgeDepth;
-          config.faceDepth = p.faceDepth;
-          config.noiseAmount = p.noiseAmount;
-          currentCornerMask = [...p.cornerMask];
-          currentEdgeMask = [...p.edgeMask];
-          currentFaceMask = [...p.faceMask];
+          config.numCorners = p.numCorners;
+          config.cornerSize = p.cornerSize;
+          config.numEdges = p.numEdges;
+          config.numFaces = p.numFaces;
+          config.maxDepth = p.maxDepth;
 
           syncSlidersFromConfig();
-          rebuildDentedMesh();
+          rebuildVoxelMesh();
           showToast(`Preset: ${btn.querySelector('span').textContent}`);
         });
       });
@@ -1386,62 +1417,75 @@
         });
       });
 
-      // Sliders
-      const sMorph = document.getElementById('slider-morph');
-      const sCorners = document.getElementById('slider-corners');
-      const sEdges = document.getElementById('slider-edges');
-      const sFaces = document.getElementById('slider-faces');
-      const sNoise = document.getElementById('slider-noise');
-
-      const vMorph = document.getElementById('val-morph');
-      const vCorners = document.getElementById('val-corners');
-      const vEdges = document.getElementById('val-edges');
-      const vFaces = document.getElementById('val-faces');
-      const vNoise = document.getElementById('val-noise');
-
-      function syncSlidersFromConfig() {
-        sCorners.value = Math.round(config.cornerDepth * 100);
-        vCorners.textContent = config.cornerDepth.toFixed(2);
-
-        sEdges.value = Math.round(config.edgeDepth * 100);
-        vEdges.textContent = config.edgeDepth.toFixed(2);
-
-        sFaces.value = Math.round(config.faceDepth * 100);
-        vFaces.textContent = config.faceDepth.toFixed(2);
-
-        sNoise.value = Math.round(config.noiseAmount * 100);
-        vNoise.textContent = config.noiseAmount.toFixed(2);
-      }
-
-      sMorph.addEventListener('input', (e) => {
-        const val = parseInt(e.target.value);
-        config.morph = val / 100;
-        vMorph.textContent = val === 0 ? '0% (Flat Cube)' : (val === 100 ? '100% Dented' : `${val}% Morph`);
-        rebuildDentedMesh();
+      // Grid Resolution buttons
+      document.querySelectorAll('.res-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.res-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          config.N = parseInt(btn.getAttribute('data-res'));
+          rebuildVoxelMesh();
+          showToast(`Resolution set to ${config.N}x${config.N}x${config.N}`);
+        });
       });
 
+      // Sliders
+      const sCorners = document.getElementById('slider-corners');
+      const sCornerSize = document.getElementById('slider-corner-size');
+      const sEdges = document.getElementById('slider-edges');
+      const sFaces = document.getElementById('slider-faces');
+      const sDepth = document.getElementById('slider-depth');
+
+      const vCorners = document.getElementById('val-corners');
+      const vCornerSize = document.getElementById('val-corner-size');
+      const vEdges = document.getElementById('val-edges');
+      const vFaces = document.getElementById('val-faces');
+      const vDepth = document.getElementById('val-depth');
+
+      function syncSlidersFromConfig() {
+        sCorners.value = config.numCorners;
+        vCorners.textContent = `${config.numCorners} Corners`;
+
+        sCornerSize.value = config.cornerSize;
+        vCornerSize.textContent = `${config.cornerSize}x${config.cornerSize}x${config.cornerSize} blocks`;
+
+        sEdges.value = config.numEdges;
+        vEdges.textContent = `${config.numEdges} Edges`;
+
+        sFaces.value = config.numFaces;
+        vFaces.textContent = `${config.numFaces} Pockets`;
+
+        sDepth.value = config.maxDepth;
+        vDepth.textContent = `${config.maxDepth} Block${config.maxDepth > 1 ? 's' : ''} Deep`;
+      }
+
       sCorners.addEventListener('input', (e) => {
-        config.cornerDepth = parseInt(e.target.value) / 100;
-        vCorners.textContent = config.cornerDepth.toFixed(2);
-        rebuildDentedMesh();
+        config.numCorners = parseInt(e.target.value);
+        vCorners.textContent = `${config.numCorners} Corners`;
+        rebuildVoxelMesh();
+      });
+
+      sCornerSize.addEventListener('input', (e) => {
+        config.cornerSize = parseInt(e.target.value);
+        vCornerSize.textContent = `${config.cornerSize}x${config.cornerSize}x${config.cornerSize} blocks`;
+        rebuildVoxelMesh();
       });
 
       sEdges.addEventListener('input', (e) => {
-        config.edgeDepth = parseInt(e.target.value) / 100;
-        vEdges.textContent = config.edgeDepth.toFixed(2);
-        rebuildDentedMesh();
+        config.numEdges = parseInt(e.target.value);
+        vEdges.textContent = `${config.numEdges} Edges`;
+        rebuildVoxelMesh();
       });
 
       sFaces.addEventListener('input', (e) => {
-        config.faceDepth = parseInt(e.target.value) / 100;
-        vFaces.textContent = config.faceDepth.toFixed(2);
-        rebuildDentedMesh();
+        config.numFaces = parseInt(e.target.value);
+        vFaces.textContent = `${config.numFaces} Pockets`;
+        rebuildVoxelMesh();
       });
 
-      sNoise.addEventListener('input', (e) => {
-        config.noiseAmount = parseInt(e.target.value) / 100;
-        vNoise.textContent = config.noiseAmount.toFixed(2);
-        rebuildDentedMesh();
+      sDepth.addEventListener('input', (e) => {
+        config.maxDepth = parseInt(e.target.value);
+        vDepth.textContent = `${config.maxDepth} Block${config.maxDepth > 1 ? 's' : ''} Deep`;
+        rebuildVoxelMesh();
       });
 
       // Toggles
@@ -1451,10 +1495,10 @@
         tGrid.classList.toggle('active', config.showGrid);
       });
 
-      const tEdges = document.getElementById('toggle-edges');
-      tEdges.addEventListener('click', () => {
-        config.showEdges = !config.showEdges;
-        tEdges.classList.toggle('active', config.showEdges);
+      const tSteps = document.getElementById('toggle-steps');
+      tSteps.addEventListener('click', () => {
+        config.showStepEdges = !config.showStepEdges;
+        tSteps.classList.toggle('active', config.showStepEdges);
       });
 
       const tAutoRotate = document.getElementById('toggle-autorotate');
@@ -1472,44 +1516,34 @@
 
       // Reset
       document.getElementById('reset-btn').addEventListener('click', () => {
-        const b = presets.balanced;
-        config.cornerDepth = b.cornerDepth;
-        config.edgeDepth = b.edgeDepth;
-        config.faceDepth = b.faceDepth;
-        config.noiseAmount = b.noiseAmount;
-        config.morph = 1.0;
-        sMorph.value = 100;
-        vMorph.textContent = '100% Dented';
-        currentCornerMask = [...b.cornerMask];
-        currentEdgeMask = [...b.edgeMask];
-        currentFaceMask = [...b.faceMask];
+        const p = presets.architectural;
+        config.numCorners = p.numCorners;
+        config.cornerSize = p.cornerSize;
+        config.numEdges = p.numEdges;
+        config.numFaces = p.numFaces;
+        config.maxDepth = p.maxDepth;
+        config.seed = 1042;
         syncSlidersFromConfig();
-        rebuildDentedMesh();
-        showToast('Reset to Balanced Dents');
+        rebuildVoxelMesh();
+        showToast('Reset to Architectural Blocks');
       });
 
-      // Randomize Dents
+      // Randomize Carving
       document.getElementById('randomize-btn').addEventListener('click', () => {
         config.seed = Math.floor(Math.random() * 100000);
-        // Randomize asymmetric weights
-        for (let i = 0; i < 8; i++) currentCornerMask[i] = Math.random() < 0.65 ? Math.random() * 0.9 + 0.1 : 0.0;
-        for (let j = 0; j < 12; j++) currentEdgeMask[j] = Math.random() < 0.60 ? Math.random() * 0.9 + 0.1 : 0.0;
-        for (let m = 0; m < 6; m++) currentFaceMask[m] = Math.random() < 0.75 ? Math.random() * 0.9 + 0.1 : 0.0;
-        rebuildDentedMesh();
-        showToast('🎲 New Dent Arrangement Generated');
+        rebuildVoxelMesh();
+        showToast('🎲 New Voxel Carve Pattern Generated');
       });
 
       // Copy JSON Config
       document.getElementById('copy-config-btn').addEventListener('click', () => {
         const dump = {
-          cornerDepth: config.cornerDepth,
-          edgeDepth: config.edgeDepth,
-          faceDepth: config.faceDepth,
-          noiseAmount: config.noiseAmount,
-          morph: config.morph,
-          cornerMask: currentCornerMask,
-          edgeMask: currentEdgeMask,
-          faceMask: currentFaceMask,
+          N: config.N,
+          numCorners: config.numCorners,
+          cornerSize: config.cornerSize,
+          numEdges: config.numEdges,
+          numFaces: config.numFaces,
+          maxDepth: config.maxDepth,
           seed: config.seed
         };
         const text = JSON.stringify(dump, null, 2);
@@ -1518,12 +1552,12 @@
           showToast('📋 Configuration copied to clipboard!');
         } else {
           showToast('Copied to console log!');
-          console.log('Dented Cube Config:', dump);
+          console.log('Voxel Carve Config:', dump);
         }
       });
 
       // Initialize
-      rebuildDentedMesh();
+      rebuildVoxelMesh();
       requestAnimationFrame(render);
 
     })();
