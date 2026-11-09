@@ -525,21 +525,21 @@
 
     <div class="section-label">Carving Presets</div>
     <div class="preset-grid">
-      <button class="preset-btn active" data-preset="heavilyDismantled">
+      <button class="preset-btn active" data-preset="userTopology">
+        <span>Target Topology</span>
+        <span class="preset-desc">8 corners, 8 edges, 24 pockets</span>
+      </button>
+      <button class="preset-btn" data-preset="heavilyDismantled">
         <span>Heavily Dismantled</span>
-        <span class="preset-desc">Deep missing chunks & notches</span>
+        <span class="preset-desc">Cascading stepped cuts</span>
       </button>
       <button class="preset-btn" data-preset="ruinedRelic">
         <span>Ruined Relic</span>
-        <span class="preset-desc">All 8 corners & edges missing</span>
-      </button>
-      <button class="preset-btn" data-preset="steppedTerraces">
-        <span>Stepped Terraces</span>
-        <span class="preset-desc">Cascading staircase blocks</span>
+        <span class="preset-desc">Deep erosion monolith</span>
       </button>
       <button class="preset-btn" data-preset="swissCheese">
         <span>Porous Voxel</span>
-        <span class="preset-desc">High density missing pieces</span>
+        <span class="preset-desc">Scattered missing blocks</span>
       </button>
     </div>
 
@@ -547,17 +547,17 @@
     <div class="slider-row">
       <div class="slider-header">
         <span>Missing Corner Blocks</span>
-        <span id="val-corners" class="slider-val">7 Corners</span>
+        <span id="val-corners" class="slider-val">8 Corners</span>
       </div>
-      <input type="range" id="slider-corners" min="0" max="8" value="7">
+      <input type="range" id="slider-corners" min="0" max="8" value="8">
     </div>
 
     <div class="slider-row">
       <div class="slider-header">
         <span>Corner Cutout Size</span>
-        <span id="val-corner-size" class="slider-val">4x4x4 blocks</span>
+        <span id="val-corner-size" class="slider-val">2x2x2 blocks</span>
       </div>
-      <input type="range" id="slider-corner-size" min="1" max="5" value="4">
+      <input type="range" id="slider-corner-size" min="1" max="5" value="2">
     </div>
 
     <div class="slider-row">
@@ -571,17 +571,17 @@
     <div class="slider-row">
       <div class="slider-header">
         <span>Missing Face Pockets</span>
-        <span id="val-faces" class="slider-val">16 Pockets</span>
+        <span id="val-faces" class="slider-val">24 Pockets</span>
       </div>
-      <input type="range" id="slider-faces" min="0" max="24" value="16">
+      <input type="range" id="slider-faces" min="0" max="32" value="24">
     </div>
 
     <div class="slider-row">
       <div class="slider-header">
         <span>Carve Depth (Layers)</span>
-        <span id="val-depth" class="slider-val">3 Blocks Deep</span>
+        <span id="val-depth" class="slider-val">4 Blocks Deep</span>
       </div>
-      <input type="range" id="slider-depth" min="1" max="4" value="3">
+      <input type="range" id="slider-depth" min="1" max="5" value="4">
     </div>
 
     <div class="section-label">Display & Overlays</div>
@@ -627,7 +627,7 @@
         return;
       }
 
-      // App Configuration
+      // App Configuration (Aligned User Topology)
       const config = {
         N: 19,                  // Grid dimension: 19x19x19
         shadingMode: 'clay',    // 'clay', 'glass', 'cavity', 'wireframe'
@@ -635,18 +635,25 @@
         showStepEdges: true,
         autoRotate: true,
         explode: 0.0,
-        numCorners: 7,          // 7 of 8 corners carved
-        cornerSize: 4,          // Up to 4x4x4 chunks
-        numEdges: 8,            // 8 of 12 edges carved
-        numFaces: 16,           // 16 face pockets
-        maxDepth: 3,            // Up to 3 blocks deep
-        seed: 1042
+        numCorners: 8,          // All 8 corners
+        cornerSize: 2,          // 2x2x2 corner chunks
+        numEdges: 8,            // 8 edges with trenches
+        numFaces: 24,           // 24 face pockets
+        maxDepth: 4,            // Up to 4 blocks deep
+        seed: Math.floor(Math.random() * 1000000) // Randomized each time on load
       };
 
       let isLight = true;
 
       // Presets
       const presets = {
+        userTopology: {
+          numCorners: 8,
+          cornerSize: 2,
+          numEdges: 8,
+          numFaces: 24,
+          maxDepth: 4
+        },
         heavilyDismantled: {
           numCorners: 7,
           cornerSize: 4,
@@ -660,13 +667,6 @@
           numEdges: 11,
           numFaces: 24,
           maxDepth: 3
-        },
-        steppedTerraces: {
-          numCorners: 6,
-          cornerSize: 4,
-          numEdges: 8,
-          numFaces: 10,
-          maxDepth: 4
         },
         swissCheese: {
           numCorners: 4,
@@ -1533,16 +1533,16 @@
 
       // Reset
       document.getElementById('reset-btn').addEventListener('click', () => {
-        const p = presets.heavilyDismantled;
+        const p = presets.userTopology;
         config.numCorners = p.numCorners;
         config.cornerSize = p.cornerSize;
         config.numEdges = p.numEdges;
         config.numFaces = p.numFaces;
         config.maxDepth = p.maxDepth;
-        config.seed = 1042;
+        config.seed = Math.floor(Math.random() * 1000000);
         syncSlidersFromConfig();
         rebuildVoxelMesh();
-        showToast('Reset to Heavily Dismantled');
+        showToast('Reset to Target Topology (Re-randomized)');
       });
 
       // Randomize Carving
