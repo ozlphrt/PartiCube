@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>PartiCube - Dented Cube Explorer</title>
+  <meta name="description" content="Interactive 3D Dented Cube Explorer & Shape Alignment for PartiCube.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧊</text></svg>">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 50%, #e2e8f0 0%, #b8c4d4 55%, #76869b 100%);
+      transition: background 0.25s ease;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+    }
+    body.dark-theme {
+      background: radial-gradient(circle at 50% 50%, #1a2230 0%, #0d121c 65%, #030508 100%);
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      touch-action: none;
+      user-select: none;
+      cursor: grab;
+    }
+    canvas:active {
+      cursor: grabbing;
+    }
+
+    /* Top Left Header & Mode Selector */
+    #top-left-hud {
+      position: fixed;
+      top: 14px;
+      left: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 25;
+      pointer-events: auto;
+    }
+    .hud-title-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(0, 0, 0, 0.14);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-radius: 9px;
+      padding: 7px 12px;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.03em;
+      color: #0284c7;
+    }
+    body.dark-theme .hud-title-badge {
+      background: rgba(15, 23, 42, 0.90);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.50);
+      color: #38bdf8;
+    }
+    .hud-title-badge span.subtext {
+      font-size: 11px;
+      font-weight: 500;
+      color: #64748b;
+    }
+    body.dark-theme .hud-title-badge span.subtext {
+      color: #94a3b8;
+    }
+
+    /* Style Selector Pills */
+    .shading-pills {
+      display: flex;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 8px;
+      padding: 3px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    }
+    body.dark-theme .shading-pills {
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+    .pill-btn {
+      padding: 4px 9px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    body.dark-theme .pill-btn {
+      color: #94a3b8;
+    }
+    .pill-btn:hover {
+      background: rgba(0, 0, 0, 0.05);
+      color: #0f172a;
+    }
+    body.dark-theme .pill-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #f8fafc;
+    }
+    .pill-btn.active {
+      background: #0284c7;
+      color: #ffffff !important;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35);
+    }
+    body.dark-theme .pill-btn.active {
+      background: #0284c7;
+    }
+
+    /* Controls Panel */
+    #controls-panel {
+      position: fixed;
+      top: 14px;
+      right: 16px;
+      width: 290px;
+      max-height: calc(100vh - 28px);
+      overflow-y: auto;
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid rgba(0, 0, 0, 0.14);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-radius: 12px;
+      padding: 12px 14px;
+      z-index: 25;
+      box-shadow: 0 10px 32px rgba(0, 0, 0, 0.12);
+      font-size: 12px;
+      color: #0f172a;
+      transition: background 0.25s, border-color 0.25s, color 0.25s;
+    }
+    body.dark-theme #controls-panel {
+      background: rgba(15, 23, 42, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.60);
+      color: #f1f5f9;
+    }
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    body.dark-theme .panel-header {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+    }
+    .panel-title {
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      color: #0284c7;
+    }
+    body.dark-theme .panel-title {
+      color: #38bdf8;
+    }
+    .header-actions {
+      display: flex;
+      gap: 6px;
+    }
+    .icon-btn {
+      background: rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 6px;
+      padding: 3px 7px;
+      font-size: 11px;
+      cursor: pointer;
+      color: #334155;
+      transition: all 0.15s;
+    }
+    body.dark-theme .icon-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #cbd5e1;
+    }
+    .icon-btn:hover {
+      background: rgba(0, 0, 0, 0.10);
+      color: #0f172a;
+    }
+    body.dark-theme .icon-btn:hover {
+      background: rgba(255, 255, 255, 0.16);
+      color: #ffffff;
+    }
+
+    /* Section Titles */
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: #64748b;
+      margin-top: 10px;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    body.dark-theme .section-label {
+      color: #94a3b8;
+    }
+
+    /* Preset Grid */
+    .preset-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+    .preset-btn {
+      background: rgba(0, 0, 0, 0.04);
+      border: 1px solid rgba(0, 0, 0, 0.09);
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #334155;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.18s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    body.dark-theme .preset-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      color: #cbd5e1;
+    }
+    .preset-btn:hover {
+      background: rgba(2, 132, 199, 0.08);
+      border-color: rgba(2, 132, 199, 0.35);
+      color: #0284c7;
+    }
+    body.dark-theme .preset-btn:hover {
+      background: rgba(56, 189, 248, 0.12);
+      border-color: rgba(56, 189, 248, 0.40);
+      color: #38bdf8;
+    }
+    .preset-btn.active {
+      background: #0284c7 !important;
+      border-color: #0284c7 !important;
+      color: #ffffff !important;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+    }
+    .preset-btn span.preset-desc {
+      font-size: 9px;
+      font-weight: 400;
+      opacity: 0.8;
+    }
+
+    /* Sliders */
+    .slider-row {
+      margin-bottom: 8px;
+    }
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 3px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #334155;
+    }
+    body.dark-theme .slider-header {
+      color: #cbd5e1;
+    }
+    .slider-val {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 10.5px;
+      color: #0284c7;
+      font-weight: 700;
+    }
+    body.dark-theme .slider-val {
+      color: #38bdf8;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 5px;
+      border-radius: 999px;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(0, 0, 0, 0.10);
+      cursor: pointer;
+    }
+    body.dark-theme input[type="range"] {
+      background: rgba(255, 255, 255, 0.14);
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #0284c7;
+      border: 2px solid #ffffff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.18);
+    }
+
+    /* Toggles Grid */
+    .toggles-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      margin-top: 8px;
+      margin-bottom: 10px;
+    }
+    .toggle-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+      background: rgba(0, 0, 0, 0.04);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 6px;
+      font-size: 11px;
+      cursor: pointer;
+      color: #334155;
+      font-weight: 500;
+    }
+    body.dark-theme .toggle-chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      color: #cbd5e1;
+    }
+    .toggle-chip.active {
+      background: rgba(2, 132, 199, 0.12);
+      border-color: #0284c7;
+      color: #0284c7;
+      font-weight: 700;
+    }
+    body.dark-theme .toggle-chip.active {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: #38bdf8;
+      color: #38bdf8;
+    }
+
+    /* Action Buttons */
+    .button-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .btn-action {
+      flex: 1;
+      padding: 7px 10px;
+      border: none;
+      border-radius: 7px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.18s;
+      text-align: center;
+    }
+    .btn-primary {
+      background: #0284c7;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+    }
+    .btn-primary:hover {
+      background: #0369a1;
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: rgba(0, 0, 0, 0.06);
+      color: #334155;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    body.dark-theme .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .btn-secondary:hover {
+      background: rgba(0, 0, 0, 0.10);
+    }
+    body.dark-theme .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(15, 23, 42, 0.90);
+      color: #f8fafc;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 100;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      transition: opacity 0.25s, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Bottom Info Badge */
+    #bottom-info {
+      position: fixed;
+      bottom: 14px;
+      left: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      font-weight: 600;
+      color: #475569;
+      pointer-events: none;
+      z-index: 20;
+    }
+    body.dark-theme #bottom-info {
+      color: #94a3b8;
+    }
+
+    @media (max-width: 640px) {
+      #controls-panel {
+        top: auto;
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+        width: auto;
+        max-height: 48vh;
+      }
+      #top-left-hud {
+        top: 10px;
+        left: 10px;
+      }
+      #bottom-info {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="top-left-hud">
+    <div class="hud-title-badge">
+      <span>🧊 DENTED CUBE EXPLORER</span>
+      <span class="subtext">Shape Alignment</span>
+    </div>
+    <div class="shading-pills">
+      <button class="pill-btn active" data-shading="clay">Matte Clay</button>
+      <button class="pill-btn" data-shading="glass">PartiCube Glass</button>
+      <button class="pill-btn" data-shading="normals">Normals</button>
+      <button class="pill-btn" data-shading="wireframe">Wireframe</button>
+    </div>
+  </div>
+
+  <div id="controls-panel">
+    <div class="panel-header">
+      <span class="panel-title">DENT CONFIGURATION</span>
+      <div class="header-actions">
+        <button id="theme-btn" class="icon-btn" title="Toggle Light/Dark Theme">🌓</button>
+        <button id="reset-btn" class="icon-btn" title="Reset to Defaults">↺</button>
+      </div>
+    </div>
+
+    <div class="section-label">Shape Presets</div>
+    <div class="preset-grid">
+      <button class="preset-btn active" data-preset="balanced">
+        <span>Balanced Dents</span>
+        <span class="preset-desc">3 corners, 4 edges, 3 faces</span>
+      </button>
+      <button class="preset-btn" data-preset="impact">
+        <span>Impact Craters</span>
+        <span class="preset-desc">Deep bowl craters & chips</span>
+      </button>
+      <button class="preset-btn" data-preset="monolith">
+        <span>Chipped Monolith</span>
+        <span class="preset-desc">Angled corner cleaves</span>
+      </button>
+      <button class="preset-btn" data-preset="weathered">
+        <span>Subtle Worn</span>
+        <span class="preset-desc">Gentle rounded erosion</span>
+      </button>
+    </div>
+
+    <div class="section-label">Morph Comparison</div>
+    <div class="slider-row">
+      <div class="slider-header">
+        <span>Cube Shape Morph</span>
+        <span id="val-morph" class="slider-val">100% Dented</span>
+      </div>
+      <input type="range" id="slider-morph" min="0" max="100" value="100">
+    </div>
+
+    <div class="section-label">Dent Intensity & Scale</div>
+    <div class="slider-row">
+      <div class="slider-header">
+        <span>Corner Dents (Chipping)</span>
+        <span id="val-corners" class="slider-val">0.32</span>
+      </div>
+      <input type="range" id="slider-corners" min="0" max="100" value="32">
+    </div>
+
+    <div class="slider-row">
+      <div class="slider-header">
+        <span>Edge Notches (Erosion)</span>
+        <span id="val-edges" class="slider-val">0.28</span>
+      </div>
+      <input type="range" id="slider-edges" min="0" max="100" value="28">
+    </div>
+
+    <div class="slider-row">
+      <div class="slider-header">
+        <span>Face Craters (Hollows)</span>
+        <span id="val-faces" class="slider-val">0.35</span>
+      </div>
+      <input type="range" id="slider-faces" min="0" max="100" value="35">
+    </div>
+
+    <div class="slider-row">
+      <div class="slider-header">
+        <span>Organic Waviness</span>
+        <span id="val-noise" class="slider-val">0.12</span>
+      </div>
+      <input type="range" id="slider-noise" min="0" max="50" value="12">
+    </div>
+
+    <div class="section-label">Overlays & Verification</div>
+    <div class="toggles-grid">
+      <div class="toggle-chip active" id="toggle-grid">
+        <span>📐 Grid Lines</span>
+      </div>
+      <div class="toggle-chip" id="toggle-tiles">
+        <span>🎲 Demo Tiles</span>
+      </div>
+      <div class="toggle-chip active" id="toggle-edges">
+        <span>📏 12 Cube Edges</span>
+      </div>
+      <div class="toggle-chip active" id="toggle-autorotate">
+        <span>🔄 Auto Rotate</span>
+      </div>
+    </div>
+
+    <div class="button-row">
+      <button id="randomize-btn" class="btn-action btn-primary">🎲 Randomize Dents</button>
+      <button id="copy-config-btn" class="btn-action btn-secondary">📋 Copy JSON</button>
+    </div>
+  </div>
+
+  <div id="bottom-info">
+    <span id="fps-badge">60 FPS</span>
+    <span>•</span>
+    <span id="mesh-info">6 Faces • 31x31 Subdivision • 100% Watertight</span>
+  </div>
+
+  <div id="toast">Config copied to clipboard!</div>
+
+  <canvas id="glcanvas"></canvas>
+
+  <script>
+    (function() {
+      'use strict';
+
+      const canvas = document.getElementById('glcanvas');
+      const gl = canvas.getContext('webgl', { antialias: true, alpha: false, powerPreference: 'high-performance' });
+      if (!gl) {
+        alert('WebGL is not supported by your browser.');
+        return;
+      }
+
+      // State Configuration
+      const config = {
+        morph: 1.0,           // 0.0 = perfect cube, 1.0 = fully dented
+        cornerDepth: 0.32,    // depth of corner chipping
+        cornerRadius: 0.48,   // radius of corner impact
+        edgeDepth: 0.28,      // depth of edge notches
+        edgeRadius: 0.36,     // radius of edge notches
+        faceDepth: 0.35,      // depth of face craters
+        faceRadius: 0.58,     // radius of face craters
+        noiseAmount: 0.12,    // subtle surface waviness
+        subdivisions: 31,     // resolution per face (matches PartiCube)
+        shadingMode: 'clay',  // 'clay', 'glass', 'normals', 'wireframe'
+        showGrid: true,
+        showTiles: false,
+        showEdges: true,
+        autoRotate: true,
+        seed: 42
+      };
+
+      let isLight = true;
+
+      // Presets
+      const presets = {
+        balanced: {
+          cornerDepth: 0.32,
+          edgeDepth: 0.28,
+          faceDepth: 0.35,
+          noiseAmount: 0.12,
+          cornerMask: [1.0, 0.4, 0.9, 0.2, 0.7, 0.1, 0.85, 0.3], // Asymmetric 8 corners
+          edgeMask: [0.8, 0.0, 0.7, 0.2, 0.9, 0.1, 0.0, 0.6, 0.75, 0.0, 0.5, 0.3], // 12 edges
+          faceMask: [0.85, 0.4, 0.9, 0.2, 0.75, 0.6] // 6 faces
+        },
+        impact: {
+          cornerDepth: 0.48,
+          edgeDepth: 0.42,
+          faceDepth: 0.60,
+          noiseAmount: 0.18,
+          cornerMask: [1.0, 0.8, 0.2, 0.9, 0.5, 1.0, 0.3, 0.7],
+          edgeMask: [1.0, 0.6, 0.8, 0.0, 0.9, 0.7, 0.5, 0.8, 1.0, 0.3, 0.6, 0.9],
+          faceMask: [1.0, 0.8, 1.0, 0.7, 0.9, 0.8]
+        },
+        monolith: {
+          cornerDepth: 0.45,
+          edgeDepth: 0.20,
+          faceDepth: 0.18,
+          noiseAmount: 0.06,
+          cornerMask: [1.0, 0.0, 0.9, 0.0, 0.0, 0.85, 0.0, 0.0], // 3 sharp cleaves
+          edgeMask: [0.7, 0.0, 0.6, 0.0, 0.8, 0.0, 0.0, 0.5, 0.0, 0.0, 0.6, 0.0],
+          faceMask: [0.3, 0.1, 0.4, 0.2, 0.25, 0.15]
+        },
+        weathered: {
+          cornerDepth: 0.20,
+          edgeDepth: 0.18,
+          faceDepth: 0.22,
+          noiseAmount: 0.10,
+          cornerMask: [0.6, 0.5, 0.7, 0.4, 0.5, 0.6, 0.7, 0.5], // Uniform gentle wear
+          edgeMask: [0.5, 0.4, 0.5, 0.4, 0.5, 0.4, 0.5, 0.4, 0.5, 0.4, 0.5, 0.4],
+          faceMask: [0.4, 0.35, 0.4, 0.3, 0.45, 0.35]
+        }
+      };
+
+      let activePresetKey = 'balanced';
+      let currentCornerMask = [...presets.balanced.cornerMask];
+      let currentEdgeMask = [...presets.balanced.edgeMask];
+      let currentFaceMask = [...presets.balanced.faceMask];
+
+      // Procedural 3D Simplex-Style Noise for Continuous Surface Waviness
+      function hash3(x, y, z) {
+        let n = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719 + config.seed * 0.17) * 43758.5453;
+        return n - Math.floor(n);
+      }
+
+      function smoothNoise3D(x, y, z) {
+        const ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z);
+        const fx = x - ix, fy = y - iy, fz = z - iz;
+        // Cubic Hermite smoothstep
+        const wx = fx * fx * (3 - 2 * fx);
+        const wy = fy * fy * (3 - 2 * fy);
+        const wz = fz * fz * (3 - 2 * fz);
+
+        const v000 = hash3(ix, iy, iz);
+        const v100 = hash3(ix + 1, iy, iz);
+        const v010 = hash3(ix, iy + 1, iz);
+        const v110 = hash3(ix + 1, iy + 1, iz);
+        const v001 = hash3(ix, iy, iz + 1);
+        const v101 = hash3(ix + 1, iy, iz + 1);
+        const v011 = hash3(ix, iy + 1, iz + 1);
+        const v111 = hash3(ix + 1, iy + 1, iz + 1);
+
+        const v00 = v000 * (1 - wx) + v100 * wx;
+        const v10 = v010 * (1 - wx) + v110 * wx;
+        const v01 = v001 * (1 - wx) + v101 * wx;
+        const v11 = v011 * (1 - wx) + v111 * wx;
+
+        const v0 = v00 * (1 - wy) + v10 * wy;
+        const v1 = v01 * (1 - wy) + v11 * wy;
+
+        return (v0 * (1 - wz) + v1 * wz) * 2.0 - 1.0;
+      }
+
+      // Canonical 8 Corner Points
+      const CORNER_POINTS = [
+        [ 1,  1,  1], [-1,  1,  1], [-1, -1,  1], [ 1, -1,  1],
+        [ 1,  1, -1], [-1,  1, -1], [-1, -1, -1], [ 1, -1, -1]
+      ];
+
+      // 12 Edge Midpoints & Directions
+      const EDGE_CENTERS = [
+        // 4 Z-parallel edges
+        [ 1,  1,  0], [-1,  1,  0], [-1, -1,  0], [ 1, -1,  0],
+        // 4 Y-parallel edges
+        [ 1,  0,  1], [-1,  0,  1], [-1,  0, -1], [ 1,  0, -1],
+        // 4 X-parallel edges
+        [ 0,  1,  1], [ 0, -1,  1], [ 0, -1, -1], [ 0,  1, -1]
+      ];
+
+      // 6 Face Centers & Normals: +Z, -Z, +X, -X, +Y, -Y
+      const FACE_CENTERS = [
+        [ 0,  0,  1], [ 0,  0, -1],
+        [ 1,  0,  0], [-1,  0,  0],
+        [ 0,  1,  0], [ 0, -1,  0]
+      ];
+
+      // Handcrafted Secondary Face Dent Offsets (creating organic irregular craters)
+      const FACE_DENT_OFFSETS = [
+        [ 0.28,  0.35], [-0.32, -0.22],
+        [-0.25,  0.40], [ 0.35, -0.30],
+        [ 0.30, -0.35], [-0.20,  0.25]
+      ];
+
+      // Universal Continuous Dent Displacement Field D(x, y, z)
+      // Because this is an analytic function of 3D world coordinates (x,y,z),
+      // it is GUARANTEED to be 100% continuous across all face boundaries, edges, and corners!
+      function computeDentDisplacement(px, py, pz) {
+        if (config.morph <= 0.001) return [0, 0, 0];
+
+        let totalInward = 0.0;
+
+        // 1. Corner Dents
+        const rCornSq = config.cornerRadius * config.cornerRadius;
+        for (let i = 0; i < 8; i++) {
+          const c = CORNER_POINTS[i];
+          const dx = px - c[0];
+          const dy = py - c[1];
+          const dz = pz - c[2];
+          const distSq = dx * dx + dy * dy + dz * dz;
+          if (distSq < rCornSq) {
+            const t = 1.0 - distSq / rCornSq;
+            // Smooth quadratic bell falloff
+            totalInward += currentCornerMask[i] * config.cornerDepth * (t * t);
+          }
+        }
+
+        // 2. Edge Notches
+        const rEdgeSq = config.edgeRadius * config.edgeRadius;
+        for (let j = 0; j < 12; j++) {
+          const e = EDGE_CENTERS[j];
+          const dx = px - e[0];
+          const dy = py - e[1];
+          const dz = pz - e[2];
+          const distSq = dx * dx + dy * dy + dz * dz;
+          if (distSq < rEdgeSq) {
+            const t = 1.0 - distSq / rEdgeSq;
+            totalInward += currentEdgeMask[j] * config.edgeDepth * (t * t);
+          }
+        }
+
+        // 3. Face Craters
+        const rFaceSq = config.faceRadius * config.faceRadius;
+        for (let m = 0; m < 6; m++) {
+          const fc = FACE_CENTERS[m];
+          const off = FACE_DENT_OFFSETS[m];
+          // Primary crater
+          let cx = fc[0] === 0 ? off[0] : fc[0];
+          let cy = fc[1] === 0 ? (fc[0] === 0 ? off[1] : off[0]) : fc[1];
+          let cz = fc[2] === 0 ? off[1] : fc[2];
+
+          const dx = px - cx;
+          const dy = py - cy;
+          const dz = pz - cz;
+          const distSq = dx * dx + dy * dy + dz * dz;
+          if (distSq < rFaceSq) {
+            const t = 1.0 - distSq / rFaceSq;
+            totalInward += currentFaceMask[m] * config.faceDepth * (t * t);
+          }
+        }
+
+        // 4. Multi-frequency Organic 3D Noise
+        if (config.noiseAmount > 0.001) {
+          const n1 = smoothNoise3D(px * 1.8 + 1.2, py * 1.8 + 2.4, pz * 1.8 + 3.1);
+          const n2 = smoothNoise3D(px * 3.6 + 4.1, py * 3.6 + 5.7, pz * 3.6 + 6.3);
+          const rawNoise = (n1 * 0.7 + n2 * 0.3);
+          // Modulate noise to push mostly inward
+          totalInward += config.noiseAmount * Math.max(-0.2, rawNoise * 0.6);
+        }
+
+        // Apply global morph factor
+        totalInward *= config.morph;
+
+        // Inward displacement direction toward cube center with distance dampening
+        const len = Math.hypot(px, py, pz) || 1.0;
+        const dirX = -px / len;
+        const dirY = -py / len;
+        const dirZ = -pz / len;
+
+        return [
+          dirX * totalInward,
+          dirY * totalInward,
+          dirZ * totalInward
+        ];
+      }
+
+      // Evaluates deformed point on face f at UV coordinate (u, v) in [-1, 1]
+      const faceBases = [
+        // +Z
+        { n: [0, 0, 1], tu: [1, 0, 0], tv: [0, 1, 0] },
+        // -Z
+        { n: [0, 0,-1], tu: [-1, 0, 0], tv: [0, 1, 0] },
+        // +X
+        { n: [1, 0, 0], tu: [0, 0,-1], tv: [0, 1, 0] },
+        // -X
+        { n: [-1, 0, 0], tu: [0, 0, 1], tv: [0, 1, 0] },
+        // +Y
+        { n: [0, 1, 0], tu: [1, 0, 0], tv: [0, 0,-1] },
+        // -Y
+        { n: [0,-1, 0], tu: [1, 0, 0], tv: [0, 0, 1] }
+      ];
+
+      function getDentedPoint(faceIdx, uCoord, vCoord) {
+        const b = faceBases[faceIdx];
+        const flatX = uCoord * b.tu[0] + vCoord * b.tv[0] + b.n[0];
+        const flatY = uCoord * b.tu[1] + vCoord * b.tv[1] + b.n[1];
+        const flatZ = uCoord * b.tu[2] + vCoord * b.tv[2] + b.n[2];
+
+        const disp = computeDentDisplacement(flatX, flatY, flatZ);
+        return [
+          flatX + disp[0],
+          flatY + disp[1],
+          flatZ + disp[2]
+        ];
+      }
+
+      // Finite-difference Normal Vector Calculation for high-fidelity specular shading
+      function getDentedNormal(faceIdx, uCoord, vCoord) {
+        const eps = 0.015;
+        const pC = getDentedPoint(faceIdx, uCoord, vCoord);
+        const pU = getDentedPoint(faceIdx, Math.min(1.0, uCoord + eps), vCoord);
+        const pV = getDentedPoint(faceIdx, uCoord, Math.min(1.0, vCoord + eps));
+
+        const duX = pU[0] - pC[0], duY = pU[1] - pC[1], duZ = pU[2] - pC[2];
+        const dvX = pV[0] - pC[0], dvY = pV[1] - pC[1], dvZ = pV[2] - pC[2];
+
+        // Cross product: du x dv
+        let nx = duY * dvZ - duZ * dvY;
+        let ny = duZ * dvX - duX * dvZ;
+        let nz = duX * dvY - duY * dvX;
+
+        // Ensure outward pointing
+        const b = faceBases[faceIdx];
+        const dotBase = nx * b.n[0] + ny * b.n[1] + nz * b.n[2];
+        if (dotBase < 0) {
+          nx = -nx; ny = -ny; nz = -nz;
+        }
+
+        const len = Math.hypot(nx, ny, nz) || 1.0;
+        return [nx / len, ny / len, nz / len];
+      }
+
+      // Shader Sources
+      const vsSource = `
+        attribute vec3 aPosition;
+        attribute vec3 aNormal;
+        attribute vec2 aUV;
+        attribute vec4 aColor;
+
+        uniform mat4 uMVP;
+        uniform mat4 uModelView;
+
+        varying vec3 vNormal;
+        varying vec3 vViewPos;
+        varying vec2 vUV;
+        varying vec4 vColor;
+
+        void main() {
+          vNormal = normalize(mat3(uModelView) * aNormal);
+          vec4 mvPos = uModelView * vec4(aPosition, 1.0);
+          vViewPos = mvPos.xyz;
+          vUV = aUV;
+          vColor = aColor;
+          gl_Position = uMVP * vec4(aPosition, 1.0);
+        }
+      `;
+
+      const fsSource = `
+        precision highp float;
+
+        varying vec3 vNormal;
+        varying vec3 vViewPos;
+        varying vec2 vUV;
+        varying vec4 vColor;
+
+        uniform int uShadingMode; // 0=clay, 1=glass, 2=normals, 3=wireframe
+        uniform float uIsLight;
+        uniform float uShowGrid;
+
+        void main() {
+          vec3 N = normalize(vNormal);
+          vec3 V = normalize(-vViewPos);
+
+          // Grid wireframe line pattern
+          vec2 gridUV = fract(vUV * 31.0);
+          float edgeDist = min(min(gridUV.x, 1.0 - gridUV.x), min(gridUV.y, 1.0 - gridUV.y));
+          float gridLine = (uShowGrid > 0.5 && edgeDist < 0.065) ? 1.0 : 0.0;
+
+          // Mode 2: Normals visualization
+          if (uShadingMode == 2) {
+            vec3 nCol = N * 0.5 + 0.5;
+            if (gridLine > 0.5) nCol *= 0.75;
+            gl_FragColor = vec4(nCol, 1.0);
+            return;
+          }
+
+          // Lighting directions
+          vec3 L1 = normalize(vec3(0.5, 0.9, 0.8));
+          vec3 L2 = normalize(vec3(-0.8, -0.4, -0.6));
+          vec3 L3 = normalize(vec3(0.0, -1.0, 0.3));
+
+          float diff1 = max(0.0, dot(N, L1));
+          float diff2 = max(0.0, dot(N, L2)) * 0.35;
+          float diff3 = max(0.0, dot(N, L3)) * 0.15;
+
+          // Specular highlights
+          vec3 H1 = normalize(L1 + V);
+          float spec1 = pow(max(0.0, dot(N, H1)), 38.0) * 0.45;
+
+          // Subtle rim lighting
+          float fresnel = pow(1.0 - max(0.0, dot(N, V)), 2.6);
+
+          if (uShadingMode == 0) {
+            // Matte Architectural Clay Mode
+            vec3 baseColor = uIsLight > 0.5 ? vec3(0.93, 0.94, 0.96) : vec3(0.18, 0.22, 0.29);
+            vec3 ambient = uIsLight > 0.5 ? vec3(0.25, 0.27, 0.30) : vec3(0.07, 0.09, 0.13);
+            vec3 diffuse = (diff1 * vec3(0.85, 0.85, 0.85) + diff2 * vec3(0.6, 0.65, 0.75) + diff3 * vec3(0.4, 0.4, 0.4));
+            
+            // Soft cavity shading in dents
+            float cavity = clamp(dot(N, vec3(0.0, 1.0, 0.0)) * 0.2 + 0.85, 0.7, 1.0);
+            vec3 finalColor = (ambient + diffuse * cavity) * baseColor + vec3(spec1);
+
+            if (gridLine > 0.5) {
+              finalColor = mix(finalColor, uIsLight > 0.5 ? vec3(0.15, 0.25, 0.38) : vec3(0.55, 0.75, 0.95), 0.38);
+            }
+            gl_FragColor = vec4(finalColor, 1.0);
+            return;
+          }
+
+          if (uShadingMode == 1) {
+            // PartiCube Translucent Glass Mode
+            vec3 glassTint = uIsLight > 0.5 ? vec3(0.88, 0.94, 0.98) : vec3(0.12, 0.18, 0.28);
+            vec3 rimColor = uIsLight > 0.5 ? vec3(0.15, 0.60, 0.90) : vec3(0.35, 0.80, 1.0);
+            
+            vec3 col = glassTint * (diff1 * 0.6 + 0.4) + rimColor * fresnel * 0.85 + vec3(spec1 * 1.2);
+            if (gridLine > 0.5) {
+              col += (uIsLight > 0.5 ? vec3(0.05, 0.35, 0.65) : vec3(0.2, 0.6, 0.9)) * 0.4;
+            }
+            gl_FragColor = vec4(col, 0.92);
+            return;
+          }
+
+          if (uShadingMode == 3) {
+            // Pure Wireframe / Grid
+            vec3 wireCol = uIsLight > 0.5 ? vec3(0.05, 0.35, 0.65) : vec3(0.35, 0.75, 1.0);
+            float alpha = (gridLine > 0.5) ? 0.9 : 0.12;
+            gl_FragColor = vec4(wireCol, alpha);
+            return;
+          }
+        }
+      `;
+
+      function createShader(type, src) {
+        const s = gl.createShader(type);
+        gl.shaderSource(s, src);
+        gl.compileShader(s);
+        if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+          console.error(gl.getShaderInfoLog(s));
+          gl.deleteShader(s);
+          return null;
+        }
+        return s;
+      }
+
+      const prog = gl.createProgram();
+      gl.attachShader(prog, createShader(gl.VERTEX_SHADER, vsSource));
+      gl.attachShader(prog, createShader(gl.FRAGMENT_SHADER, fsSource));
+      gl.linkProgram(prog);
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+        console.error(gl.getProgramInfoLog(prog));
+      }
+
+      const attribs = {
+        pos: gl.getAttribLocation(prog, 'aPosition'),
+        norm: gl.getAttribLocation(prog, 'aNormal'),
+        uv: gl.getAttribLocation(prog, 'aUV'),
+        col: gl.getAttribLocation(prog, 'aColor')
+      };
+      const uniforms = {
+        uMVP: gl.getUniformLocation(prog, 'uMVP'),
+        uModelView: gl.getUniformLocation(prog, 'uModelView'),
+        uShadingMode: gl.getUniformLocation(prog, 'uShadingMode'),
+        uIsLight: gl.getUniformLocation(prog, 'uIsLight'),
+        uShowGrid: gl.getUniformLocation(prog, 'uShowGrid')
+      };
+
+      // Edge Outline Shader
+      const edgeVsSource = `
+        attribute vec3 aPosition;
+        uniform mat4 uMVP;
+        void main() {
+          gl_Position = uMVP * vec4(aPosition, 1.0);
+        }
+      `;
+      const edgeFsSource = `
+        precision mediump float;
+        uniform vec4 uEdgeColor;
+        void main() {
+          gl_FragColor = uEdgeColor;
+        }
+      `;
+      const edgeProg = gl.createProgram();
+      gl.attachShader(edgeProg, createShader(gl.VERTEX_SHADER, edgeVsSource));
+      gl.attachShader(edgeProg, createShader(gl.FRAGMENT_SHADER, edgeFsSource));
+      gl.linkProgram(edgeProg);
+      const edgePosAttr = gl.getAttribLocation(edgeProg, 'aPosition');
+      const edgeMVPUni = gl.getUniformLocation(edgeProg, 'uMVP');
+      const edgeColUni = gl.getUniformLocation(edgeProg, 'uEdgeColor');
+
+      // Geometry Buffers
+      let meshBuffer = gl.createBuffer();
+      let meshVertexCount = 0;
+      let edgeBuffer = gl.createBuffer();
+      let edgeVertexCount = 0;
+
+      // Rebuild 3D Mesh
+      function rebuildDentedMesh() {
+        const N = config.subdivisions;
+        const totalFaces = 6;
+        // 6 faces * N * N quads * 6 vertices per quad = 36 * N * N vertices
+        const vertexCount = totalFaces * N * N * 6;
+        // 11 floats per vertex: x, y, z, nx, ny, nz, u, v, r, g, b
+        const vertexData = new Float32Array(vertexCount * 11);
+        let ptr = 0;
+
+        for (let f = 0; f < 6; f++) {
+          for (let i = 0; i < N; i++) {
+            for (let j = 0; j < N; j++) {
+              const u0 = -1.0 + (i / N) * 2.0;
+              const u1 = -1.0 + ((i + 1) / N) * 2.0;
+              const v0 = -1.0 + (j / N) * 2.0;
+              const v1 = -1.0 + ((j + 1) / N) * 2.0;
+
+              const uv_u0 = i / N;
+              const uv_u1 = (i + 1) / N;
+              const uv_v0 = j / N;
+              const uv_v1 = (j + 1) / N;
+
+              // 4 corners of the quad
+              const p00 = getDentedPoint(f, u0, v0);
+              const p10 = getDentedPoint(f, u1, v0);
+              const p11 = getDentedPoint(f, u1, v1);
+              const p01 = getDentedPoint(f, u0, v1);
+
+              const n00 = getDentedNormal(f, u0, v0);
+              const n10 = getDentedNormal(f, u1, v0);
+              const n11 = getDentedNormal(f, u1, v1);
+              const n01 = getDentedNormal(f, u0, v1);
+
+              // Triangle 1: p00, p10, p11
+              addVertex(p00, n00, uv_u0, uv_v0);
+              addVertex(p10, n10, uv_u1, uv_v0);
+              addVertex(p11, n11, uv_u1, uv_v1);
+
+              // Triangle 2: p00, p11, p01
+              addVertex(p00, n00, uv_u0, uv_v0);
+              addVertex(p11, n11, uv_u1, uv_v1);
+              addVertex(p01, n01, uv_u0, uv_v1);
+            }
+          }
+        }
+
+        function addVertex(p, n, u, v) {
+          vertexData[ptr++] = p[0];
+          vertexData[ptr++] = p[1];
+          vertexData[ptr++] = p[2];
+          vertexData[ptr++] = n[0];
+          vertexData[ptr++] = n[1];
+          vertexData[ptr++] = n[2];
+          vertexData[ptr++] = u;
+          vertexData[ptr++] = v;
+          vertexData[ptr++] = 1.0;
+          vertexData[ptr++] = 1.0;
+          vertexData[ptr++] = 1.0;
+        }
+
+        meshVertexCount = vertexCount;
+        gl.bindBuffer(gl.ARRAY_BUFFER, meshBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, vertexData, gl.DYNAMIC_DRAW);
+
+        // Rebuild 12 Edge Lines tracing the dented perimeter
+        const edgeSegsPerEdge = N;
+        const edgeData = new Float32Array(12 * edgeSegsPerEdge * 2 * 3);
+        let ePtr = 0;
+
+        // Trace the 12 bounding edges by sampling getDentedPoint
+        function addEdgeSegment(pA, pB) {
+          edgeData[ePtr++] = pA[0]; edgeData[ePtr++] = pA[1]; edgeData[ePtr++] = pA[2];
+          edgeData[ePtr++] = pB[0]; edgeData[ePtr++] = pB[1]; edgeData[ePtr++] = pB[2];
+        }
+
+        // Face 0 (+Z): 4 perimeters
+        for (let s = 0; s < N; s++) {
+          const t0 = -1 + (s / N) * 2;
+          const t1 = -1 + ((s + 1) / N) * 2;
+          // Bottom & Top
+          addEdgeSegment(getDentedPoint(0, t0, -1), getDentedPoint(0, t1, -1));
+          addEdgeSegment(getDentedPoint(0, t0,  1), getDentedPoint(0, t1,  1));
+          // Left & Right
+          addEdgeSegment(getDentedPoint(0, -1, t0), getDentedPoint(0, -1, t1));
+          addEdgeSegment(getDentedPoint(0,  1, t0), getDentedPoint(0,  1, t1));
+
+          // Face 1 (-Z): 4 perimeters
+          addEdgeSegment(getDentedPoint(1, t0, -1), getDentedPoint(1, t1, -1));
+          addEdgeSegment(getDentedPoint(1, t0,  1), getDentedPoint(1, t1,  1));
+          addEdgeSegment(getDentedPoint(1, -1, t0), getDentedPoint(1, -1, t1));
+          addEdgeSegment(getDentedPoint(1,  1, t0), getDentedPoint(1,  1, t1));
+
+          // 4 connecting Z-edges on Face 2 & 3
+          addEdgeSegment(getDentedPoint(2, t0, -1), getDentedPoint(2, t1, -1));
+          addEdgeSegment(getDentedPoint(2, t0,  1), getDentedPoint(2, t1,  1));
+          addEdgeSegment(getDentedPoint(3, t0, -1), getDentedPoint(3, t1, -1));
+          addEdgeSegment(getDentedPoint(3, t0,  1), getDentedPoint(3, t1,  1));
+        }
+
+        edgeVertexCount = ePtr / 3;
+        gl.bindBuffer(gl.ARRAY_BUFFER, edgeBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, edgeData.subarray(0, ePtr), gl.DYNAMIC_DRAW);
+      }
+
+      // Camera & Arcball Orbit Controls
+      let rotX = 0.55;
+      let rotY = 0.65;
+      let targetRotX = rotX;
+      let targetRotY = rotY;
+      let zoom = 1.0;
+      let targetZoom = 1.0;
+      let isDragging = false;
+      let lastX = 0, lastY = 0;
+      let velX = 0, velY = 0;
+
+      // 4x4 Matrix Utilities
+      function mat4Create() { return new Float32Array(16); }
+      function mat4Identity(out) {
+        out.fill(0);
+        out[0] = out[5] = out[10] = out[15] = 1;
+        return out;
+      }
+      function mat4Perspective(out, fovy, aspect, near, far) {
+        const f = 1.0 / Math.tan(fovy / 2);
+        out.fill(0);
+        out[0] = f / aspect;
+        out[5] = f;
+        out[10] = (far + near) / (near - far);
+        out[11] = -1;
+        out[14] = (2 * far * near) / (near - far);
+        return out;
+      }
+      function mat4Multiply(out, a, b) {
+        const a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3];
+        const a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7];
+        const a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11];
+        const a30 = a[12], a31 = a[13], a32 = a[14], a33 = a[15];
+
+        let b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3];
+        out[0] = b0*a00 + b1*a10 + b2*a20 + b3*a30;
+        out[1] = b0*a01 + b1*a11 + b2*a21 + b3*a31;
+        out[2] = b0*a02 + b1*a12 + b2*a22 + b3*a32;
+        out[3] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
+
+        b0 = b[4]; b1 = b[5]; b2 = b[6]; b3 = b[7];
+        out[4] = b0*a00 + b1*a10 + b2*a20 + b3*a30;
+        out[5] = b0*a01 + b1*a11 + b2*a21 + b3*a31;
+        out[6] = b0*a02 + b1*a12 + b2*a22 + b3*a32;
+        out[7] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
+
+        b0 = b[8]; b1 = b[9]; b2 = b[10]; b3 = b[11];
+        out[8] = b0*a00 + b1*a10 + b2*a20 + b3*a30;
+        out[9] = b0*a01 + b1*a11 + b2*a21 + b3*a31;
+        out[10] = b0*a02 + b1*a12 + b2*a22 + b3*a32;
+        out[11] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
+
+        b0 = b[12]; b1 = b[13]; b2 = b[14]; b3 = b[15];
+        out[12] = b0*a00 + b1*a10 + b2*a20 + b3*a30;
+        out[13] = b0*a01 + b1*a11 + b2*a21 + b3*a31;
+        out[14] = b0*a02 + b1*a12 + b2*a22 + b3*a32;
+        out[15] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
+        return out;
+      }
+
+      const pMatrix = mat4Create();
+      const vMatrix = mat4Create();
+      const mvpMatrix = mat4Create();
+
+      // Render Loop
+      let lastTime = performance.now();
+      let frameCount = 0;
+      let lastFpsTime = lastTime;
+      const fpsBadge = document.getElementById('fps-badge');
+
+      function resize() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2.0);
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        if (canvas.width !== Math.floor(w * dpr) || canvas.height !== Math.floor(h * dpr)) {
+          canvas.width = Math.floor(w * dpr);
+          canvas.height = Math.floor(h * dpr);
+          gl.viewport(0, 0, canvas.width, canvas.height);
+        }
+      }
+
+      function render() {
+        const now = performance.now();
+        const dt = Math.min(0.05, (now - lastTime) * 0.001);
+        lastTime = now;
+
+        frameCount++;
+        if (now - lastFpsTime >= 500) {
+          const fps = Math.round((frameCount * 1000) / (now - lastFpsTime));
+          if (fpsBadge) fpsBadge.textContent = `${fps} FPS`;
+          frameCount = 0;
+          lastFpsTime = now;
+        }
+
+        resize();
+
+        // Auto-rotation when not dragging
+        if (config.autoRotate && !isDragging) {
+          targetRotY += dt * 0.35;
+        }
+
+        // Smooth inertial interpolation
+        rotX += (targetRotX - rotX) * 0.15;
+        rotY += (targetRotY - rotY) * 0.15;
+        zoom += (targetZoom - zoom) * 0.15;
+
+        // Clear color based on light/dark mode
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.enable(gl.DEPTH_TEST);
+        gl.enable(gl.CULL_FACE);
+        gl.cullFace(gl.BACK);
+
+        const aspect = canvas.width / canvas.height;
+        mat4Perspective(pMatrix, 45 * Math.PI / 180, aspect, 0.1, 100.0);
+
+        // View Matrix (Arcball Orbit)
+        const dist = 3.8 / zoom;
+        mat4Identity(vMatrix);
+        vMatrix[14] = -dist; // translate Z
+
+        // Rotate X and Y
+        const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+        const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+
+        const rotM = mat4Create();
+        mat4Identity(rotM);
+        // Combine Y then X rotation
+        rotM[0] = cosY; rotM[2] = sinY;
+        rotM[4] = sinX * sinY; rotM[5] = cosX; rotM[6] = -sinX * cosY;
+        rotM[8] = -cosX * sinY; rotM[9] = sinX; rotM[10] = cosX * cosY;
+
+        mat4Multiply(vMatrix, vMatrix, rotM);
+        mat4Multiply(mvpMatrix, pMatrix, vMatrix);
+
+        // Render Dented Cube Mesh
+        gl.useProgram(prog);
+        gl.uniformMatrix4fv(uniforms.uMVP, false, mvpMatrix);
+        gl.uniformMatrix4fv(uniforms.uModelView, false, vMatrix);
+        gl.uniform1i(uniforms.uShadingMode, config.shadingMode === 'clay' ? 0 : (config.shadingMode === 'glass' ? 1 : (config.shadingMode === 'normals' ? 2 : 3)));
+        gl.uniform1f(uniforms.uIsLight, isLight ? 1.0 : 0.0);
+        gl.uniform1f(uniforms.uShowGrid, config.showGrid ? 1.0 : 0.0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, meshBuffer);
+        const stride = 11 * 4;
+        gl.enableVertexAttribArray(attribs.pos);
+        gl.vertexAttribPointer(attribs.pos, 3, gl.FLOAT, false, stride, 0);
+        gl.enableVertexAttribArray(attribs.norm);
+        gl.vertexAttribPointer(attribs.norm, 3, gl.FLOAT, false, stride, 12);
+        gl.enableVertexAttribArray(attribs.uv);
+        gl.vertexAttribPointer(attribs.uv, 2, gl.FLOAT, false, stride, 24);
+        gl.enableVertexAttribArray(attribs.col);
+        gl.vertexAttribPointer(attribs.col, 3, gl.FLOAT, false, stride, 32);
+
+        gl.drawArrays(gl.TRIANGLES, 0, meshVertexCount);
+
+        // Optional 12 Edge Lines Overlay
+        if (config.showEdges) {
+          gl.disable(gl.CULL_FACE);
+          gl.depthMask(false);
+          gl.useProgram(edgeProg);
+          gl.uniformMatrix4fv(edgeMVPUni, false, mvpMatrix);
+          const edgeCol = isLight ? [0.08, 0.45, 0.75, 0.90] : [0.25, 0.75, 1.0, 0.90];
+          gl.uniform4fv(edgeColUni, edgeCol);
+
+          gl.bindBuffer(gl.ARRAY_BUFFER, edgeBuffer);
+          gl.enableVertexAttribArray(edgePosAttr);
+          gl.vertexAttribPointer(edgePosAttr, 3, gl.FLOAT, false, 12, 0);
+
+          gl.drawArrays(gl.LINES, 0, edgeVertexCount);
+          gl.depthMask(true);
+        }
+
+        requestAnimationFrame(render);
+      }
+
+      // Input Event Handlers
+      canvas.addEventListener('pointerdown', (e) => {
+        isDragging = true;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        velX = 0;
+        velY = 0;
+        try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+      });
+
+      window.addEventListener('pointermove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - lastX;
+        const dy = e.clientY - lastY;
+        lastX = e.clientX;
+        lastY = e.clientY;
+
+        targetRotY += dx * 0.007;
+        targetRotX += dy * 0.007;
+        targetRotX = Math.max(-1.5, Math.min(1.5, targetRotX));
+      });
+
+      window.addEventListener('pointerup', (e) => {
+        isDragging = false;
+        try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+      });
+
+      canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const factor = e.deltaY < 0 ? 1.09 : 0.91;
+        targetZoom = Math.max(0.4, Math.min(3.5, targetZoom * factor));
+      }, { passive: false });
+
+      // UI Wiring
+      function showToast(msg) {
+        const toast = document.getElementById('toast');
+        if (!toast) return;
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2200);
+      }
+
+      // Preset buttons
+      document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const key = btn.getAttribute('data-preset');
+          activePresetKey = key;
+          const p = presets[key];
+          if (!p) return;
+
+          config.cornerDepth = p.cornerDepth;
+          config.edgeDepth = p.edgeDepth;
+          config.faceDepth = p.faceDepth;
+          config.noiseAmount = p.noiseAmount;
+          currentCornerMask = [...p.cornerMask];
+          currentEdgeMask = [...p.edgeMask];
+          currentFaceMask = [...p.faceMask];
+
+          syncSlidersFromConfig();
+          rebuildDentedMesh();
+          showToast(`Preset: ${btn.querySelector('span').textContent}`);
+        });
+      });
+
+      // Shading pills
+      document.querySelectorAll('.pill-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          config.shadingMode = btn.getAttribute('data-shading');
+        });
+      });
+
+      // Sliders
+      const sMorph = document.getElementById('slider-morph');
+      const sCorners = document.getElementById('slider-corners');
+      const sEdges = document.getElementById('slider-edges');
+      const sFaces = document.getElementById('slider-faces');
+      const sNoise = document.getElementById('slider-noise');
+
+      const vMorph = document.getElementById('val-morph');
+      const vCorners = document.getElementById('val-corners');
+      const vEdges = document.getElementById('val-edges');
+      const vFaces = document.getElementById('val-faces');
+      const vNoise = document.getElementById('val-noise');
+
+      function syncSlidersFromConfig() {
+        sCorners.value = Math.round(config.cornerDepth * 100);
+        vCorners.textContent = config.cornerDepth.toFixed(2);
+
+        sEdges.value = Math.round(config.edgeDepth * 100);
+        vEdges.textContent = config.edgeDepth.toFixed(2);
+
+        sFaces.value = Math.round(config.faceDepth * 100);
+        vFaces.textContent = config.faceDepth.toFixed(2);
+
+        sNoise.value = Math.round(config.noiseAmount * 100);
+        vNoise.textContent = config.noiseAmount.toFixed(2);
+      }
+
+      sMorph.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value);
+        config.morph = val / 100;
+        vMorph.textContent = val === 0 ? '0% (Flat Cube)' : (val === 100 ? '100% Dented' : `${val}% Morph`);
+        rebuildDentedMesh();
+      });
+
+      sCorners.addEventListener('input', (e) => {
+        config.cornerDepth = parseInt(e.target.value) / 100;
+        vCorners.textContent = config.cornerDepth.toFixed(2);
+        rebuildDentedMesh();
+      });
+
+      sEdges.addEventListener('input', (e) => {
+        config.edgeDepth = parseInt(e.target.value) / 100;
+        vEdges.textContent = config.edgeDepth.toFixed(2);
+        rebuildDentedMesh();
+      });
+
+      sFaces.addEventListener('input', (e) => {
+        config.faceDepth = parseInt(e.target.value) / 100;
+        vFaces.textContent = config.faceDepth.toFixed(2);
+        rebuildDentedMesh();
+      });
+
+      sNoise.addEventListener('input', (e) => {
+        config.noiseAmount = parseInt(e.target.value) / 100;
+        vNoise.textContent = config.noiseAmount.toFixed(2);
+        rebuildDentedMesh();
+      });
+
+      // Toggles
+      const tGrid = document.getElementById('toggle-grid');
+      tGrid.addEventListener('click', () => {
+        config.showGrid = !config.showGrid;
+        tGrid.classList.toggle('active', config.showGrid);
+      });
+
+      const tEdges = document.getElementById('toggle-edges');
+      tEdges.addEventListener('click', () => {
+        config.showEdges = !config.showEdges;
+        tEdges.classList.toggle('active', config.showEdges);
+      });
+
+      const tAutoRotate = document.getElementById('toggle-autorotate');
+      tAutoRotate.addEventListener('click', () => {
+        config.autoRotate = !config.autoRotate;
+        tAutoRotate.classList.toggle('active', config.autoRotate);
+      });
+
+      // Theme Toggle
+      const themeBtn = document.getElementById('theme-btn');
+      themeBtn.addEventListener('click', () => {
+        isLight = !isLight;
+        document.body.classList.toggle('dark-theme', !isLight);
+      });
+
+      // Reset
+      document.getElementById('reset-btn').addEventListener('click', () => {
+        const b = presets.balanced;
+        config.cornerDepth = b.cornerDepth;
+        config.edgeDepth = b.edgeDepth;
+        config.faceDepth = b.faceDepth;
+        config.noiseAmount = b.noiseAmount;
+        config.morph = 1.0;
+        sMorph.value = 100;
+        vMorph.textContent = '100% Dented';
+        currentCornerMask = [...b.cornerMask];
+        currentEdgeMask = [...b.edgeMask];
+        currentFaceMask = [...b.faceMask];
+        syncSlidersFromConfig();
+        rebuildDentedMesh();
+        showToast('Reset to Balanced Dents');
+      });
+
+      // Randomize Dents
+      document.getElementById('randomize-btn').addEventListener('click', () => {
+        config.seed = Math.floor(Math.random() * 100000);
+        // Randomize asymmetric weights
+        for (let i = 0; i < 8; i++) currentCornerMask[i] = Math.random() < 0.65 ? Math.random() * 0.9 + 0.1 : 0.0;
+        for (let j = 0; j < 12; j++) currentEdgeMask[j] = Math.random() < 0.60 ? Math.random() * 0.9 + 0.1 : 0.0;
+        for (let m = 0; m < 6; m++) currentFaceMask[m] = Math.random() < 0.75 ? Math.random() * 0.9 + 0.1 : 0.0;
+        rebuildDentedMesh();
+        showToast('🎲 New Dent Arrangement Generated');
+      });
+
+      // Copy JSON Config
+      document.getElementById('copy-config-btn').addEventListener('click', () => {
+        const dump = {
+          cornerDepth: config.cornerDepth,
+          edgeDepth: config.edgeDepth,
+          faceDepth: config.faceDepth,
+          noiseAmount: config.noiseAmount,
+          morph: config.morph,
+          cornerMask: currentCornerMask,
+          edgeMask: currentEdgeMask,
+          faceMask: currentFaceMask,
+          seed: config.seed
+        };
+        const text = JSON.stringify(dump, null, 2);
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(text);
+          showToast('📋 Configuration copied to clipboard!');
+        } else {
+          showToast('Copied to console log!');
+          console.log('Dented Cube Config:', dump);
+        }
+      });
+
+      // Initialize
+      rebuildDentedMesh();
+      requestAnimationFrame(render);
+
+    })();
+  </script>
+</body>
+</html>
