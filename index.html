@@ -1753,6 +1753,8 @@
 
       let voxelGrid = null;
       let cellDepths = null;
+      let cellValid = null;
+      const validCellsByFace = Array.from({length: 6}, () => []);
 
       function generateCubeTopology() {
         const N = subdivisions;
@@ -1923,42 +1925,41 @@
           return voxelGrid[x + y * N + z * N * N] === 1;
         }
 
-        // Precompute recessed cellDepths for each face
+        // Precompute recessed cellDepths and valid cell mask for each face
         cellDepths = Array.from({length: 6}, () =>
           Array.from({length: N}, () => new Uint8Array(N))
         );
+        cellValid = Array.from({length: 6}, () =>
+          Array.from({length: N}, () => new Uint8Array(N))
+        );
+        for (let f = 0; f < 6; f++) {
+          validCellsByFace[f].length = 0;
+        }
 
         for (let u = 0; u < N; u++) {
           for (let v = 0; v < N; v++) {
-            // Face 0 (+Z): z = N-1 inward
-            let d0 = 0;
-            while (d0 < maxD && !isSolid(u, v, N - 1 - d0)) d0++;
-            cellDepths[0][u][v] = d0;
-
-            // Face 1 (-Z): z = 0 inward
-            let d1 = 0;
-            while (d1 < maxD && !isSolid((N - 1) - u, v, d1)) d1++;
-            cellDepths[1][u][v] = d1;
-
-            // Face 2 (+Y): y = N-1 inward
-            let d2 = 0;
-            while (d2 < maxD && !isSolid(u, N - 1 - d2, (N - 1) - v)) d2++;
-            cellDepths[2][u][v] = d2;
-
-            // Face 3 (-Y): y = 0 inward
-            let d3 = 0;
-            while (d3 < maxD && !isSolid(u, d3, v)) d3++;
-            cellDepths[3][u][v] = d3;
-
-            // Face 4 (+X): x = N-1 inward
-            let d4 = 0;
-            while (d4 < maxD && !isSolid(N - 1 - d4, v, (N - 1) - u)) d4++;
-            cellDepths[4][u][v] = d4;
-
-            // Face 5 (-X): x = 0 inward
-            let d5 = 0;
-            while (d5 < maxD && !isSolid(d5, v, u)) d5++;
-            cellDepths[5][u][v] = d5;
+            for (let f = 0; f < 6; f++) {
+              let d = 0;
+              while (d < N) {
+                let vx, vy, vz;
+                if (f === 0) { vx = u; vy = v; vz = N - 1 - d; }
+                else if (f === 1) { vx = (N - 1) - u; vy = v; vz = d; }
+                else if (f === 2) { vx = u; vy = N - 1 - d; vz = (N - 1) - v; }
+                else if (f === 3) { vx = u; vy = d; vz = v; }
+                else if (f === 4) { vx = N - 1 - d; vy = v; vz = (N - 1) - u; }
+                else { vx = d; vy = v; vz = u; }
+                if (isSolid(vx, vy, vz)) break;
+                d++;
+              }
+              if (d <= maxD) {
+                cellDepths[f][u][v] = d;
+                cellValid[f][u][v] = 1;
+                validCellsByFace[f].push({ u, v });
+              } else {
+                cellDepths[f][u][v] = 0;
+                cellValid[f][u][v] = 0;
+              }
+            }
           }
         }
       }
@@ -2318,12 +2319,18 @@
         tiles.length = 0;
         tileById.clear();
         let placed = 0;
-        const totalSlots = 6 * subdivisions * subdivisions;
-        const countToPlace = Math.min(targetCount, Math.floor(totalSlots * 0.85));
-        while (placed < countToPlace) {
+        let totalValidSlots = 0;
+        for (let f = 0; f < 6; f++) totalValidSlots += validCellsByFace[f].length;
+        const countToPlace = Math.min(targetCount, Math.floor(totalValidSlots * 0.85));
+        let attempts = 0;
+        while (placed < countToPlace && attempts < totalValidSlots * 3) {
+          attempts++;
           const face = Math.floor(pseudoRandom() * 6);
-          const u = Math.floor(pseudoRandom() * subdivisions);
-          const v = Math.floor(pseudoRandom() * subdivisions);
+          const faceList = validCellsByFace[face];
+          if (!faceList || faceList.length === 0) continue;
+          const cell = faceList[Math.floor(pseudoRandom() * faceList.length)];
+          const u = cell.u;
+          const v = cell.v;
           if (faceGrids[face][u][v] === -1) {
             const colorIdx = Math.floor(pseudoRandom() * 4);
             const col = colors[colorIdx];
@@ -2740,6 +2747,20 @@
         rebuildGridAndFog();
         for (let i = 0; i < tiles.length; i++) {
           const t = tiles[i];
+          if (cellValid && cellValid[t.face] && cellValid[t.face][t.u][t.v] === 0) {
+            faceGrids[t.face][t.u][t.v] = -1;
+            const validList = validCellsByFace[t.face];
+            if (validList && validList.length > 0) {
+              const cell = validList[Math.floor(pseudoRandom() * validList.length)];
+              t.u = cell.u;
+              t.v = cell.v;
+              t.fromU = cell.u;
+              t.fromV = cell.v;
+              t.targetU = cell.u;
+              t.targetV = cell.v;
+              faceGrids[t.face][t.u][t.v] = t.id;
+            }
+          }
           t.currentPos = getCellCenter(t.face, t.u, t.v);
         }
         if (typeof showToast === 'function') {
@@ -2867,8 +2888,11 @@
           while (needed > 0 && attempts < totalCapacity) {
             attempts++;
             const face = Math.floor(pseudoRandom() * 6);
-            const u = Math.floor(pseudoRandom() * subdivisions);
-            const v = Math.floor(pseudoRandom() * subdivisions);
+            const faceList = validCellsByFace[face];
+            if (!faceList || faceList.length === 0) continue;
+            const cell = faceList[Math.floor(pseudoRandom() * faceList.length)];
+            const u = cell.u;
+            const v = cell.v;
             if (faceGrids[face][u][v] === -1) {
               const colorIdx = Math.floor(pseudoRandom() * 4);
               const col = colors[colorIdx];
@@ -3571,8 +3595,11 @@
                   if (lvl.type === 'top') rf = skyTopFace;
                   else if (lvl.type === 'bot') rf = groundBotFace;
                 }
-                const ru = Math.floor(pseudoRandom() * subdivisions);
-                const rv = Math.floor(pseudoRandom() * subdivisions);
+                const faceList = validCellsByFace[rf];
+                if (!faceList || faceList.length === 0) continue;
+                const cell = faceList[Math.floor(pseudoRandom() * faceList.length)];
+                const ru = cell.u;
+                const rv = cell.v;
                 if (faceGrids[rf][ru][rv] === -1) {
                   const newId = tileIdCounter++;
                   faceGrids[rf][ru][rv] = newId;
@@ -4150,18 +4177,20 @@
                 let isFree = false;
 
                 if (nu >= 0 && nu < subdivisions && nv >= 0 && nv < subdivisions) {
-                  if (faceGrids[t.face][nu][nv] === -1) {
+                  if ((!cellValid || cellValid[t.face][nu][nv] === 1) && faceGrids[t.face][nu][nv] === -1) {
                     isFree = true;
                   }
                 } else {
                   // Face edge crossing to neighboring face
                   const trans = getFaceTransition(t.face, t.u, t.v, du, dv);
-                  if (faceGrids[trans.targetFace] && faceGrids[trans.targetFace][trans.targetU] && faceGrids[trans.targetFace][trans.targetU][trans.targetV] === -1) {
-                    candTargetFace = trans.targetFace;
-                    candTargetU = trans.targetU;
-                    candTargetV = trans.targetV;
-                    candNextDir = trans.nextDir;
-                    isFree = true;
+                  if (cellValid && cellValid[trans.targetFace] && cellValid[trans.targetFace][trans.targetU] && cellValid[trans.targetFace][trans.targetU][trans.targetV] === 1) {
+                    if (faceGrids[trans.targetFace] && faceGrids[trans.targetFace][trans.targetU] && faceGrids[trans.targetFace][trans.targetU][trans.targetV] === -1) {
+                      candTargetFace = trans.targetFace;
+                      candTargetU = trans.targetU;
+                      candTargetV = trans.targetV;
+                      candNextDir = trans.nextDir;
+                      isFree = true;
+                    }
                   }
                 }
 
@@ -4289,6 +4318,7 @@
                 const canContinueAhead = isSameFace && 
                                          (nextAheadU >= 0 && nextAheadU < subdivisions && 
                                           nextAheadV >= 0 && nextAheadV < subdivisions && 
+                                          (!cellValid || cellValid[chosen.targetFace][nextAheadU][nextAheadV] === 1) &&
                                           faceGrids[chosen.targetFace][nextAheadU][nextAheadV] === -1);
 
                 // Stop with Ease-Out at 5th tile or when reaching end of straight path
