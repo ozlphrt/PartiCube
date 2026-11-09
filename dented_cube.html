@@ -525,21 +525,21 @@
 
     <div class="section-label">Carving Presets</div>
     <div class="preset-grid">
-      <button class="preset-btn active" data-preset="architectural">
-        <span>Architectural</span>
-        <span class="preset-desc">Stepped notches & missing chunks</span>
+      <button class="preset-btn active" data-preset="heavilyDismantled">
+        <span>Heavily Dismantled</span>
+        <span class="preset-desc">Deep missing chunks & notches</span>
       </button>
-      <button class="preset-btn" data-preset="cornerBites">
-        <span>Corner Bites</span>
-        <span class="preset-desc">Large missing corner blocks</span>
+      <button class="preset-btn" data-preset="ruinedRelic">
+        <span>Ruined Relic</span>
+        <span class="preset-desc">All 8 corners & edges missing</span>
       </button>
-      <button class="preset-btn" data-preset="trenches">
-        <span>Edge Trenches</span>
-        <span class="preset-desc">Stepped grooves along edges</span>
+      <button class="preset-btn" data-preset="steppedTerraces">
+        <span>Stepped Terraces</span>
+        <span class="preset-desc">Cascading staircase blocks</span>
       </button>
-      <button class="preset-btn" data-preset="pockets">
-        <span>Missing Bricks</span>
-        <span class="preset-desc">Scattered face block alcoves</span>
+      <button class="preset-btn" data-preset="swissCheese">
+        <span>Porous Voxel</span>
+        <span class="preset-desc">High density missing pieces</span>
       </button>
     </div>
 
@@ -547,41 +547,41 @@
     <div class="slider-row">
       <div class="slider-header">
         <span>Missing Corner Blocks</span>
-        <span id="val-corners" class="slider-val">3 Corners (Size 3)</span>
+        <span id="val-corners" class="slider-val">7 Corners</span>
       </div>
-      <input type="range" id="slider-corners" min="0" max="6" value="3">
+      <input type="range" id="slider-corners" min="0" max="8" value="7">
     </div>
 
     <div class="slider-row">
       <div class="slider-header">
         <span>Corner Cutout Size</span>
-        <span id="val-corner-size" class="slider-val">3x3x3 blocks</span>
+        <span id="val-corner-size" class="slider-val">4x4x4 blocks</span>
       </div>
-      <input type="range" id="slider-corner-size" min="1" max="4" value="3">
+      <input type="range" id="slider-corner-size" min="1" max="5" value="4">
     </div>
 
     <div class="slider-row">
       <div class="slider-header">
         <span>Missing Edge Trenches</span>
-        <span id="val-edges" class="slider-val">4 Edges</span>
+        <span id="val-edges" class="slider-val">8 Edges</span>
       </div>
-      <input type="range" id="slider-edges" min="0" max="8" value="4">
+      <input type="range" id="slider-edges" min="0" max="12" value="8">
     </div>
 
     <div class="slider-row">
       <div class="slider-header">
         <span>Missing Face Pockets</span>
-        <span id="val-faces" class="slider-val">6 Pockets</span>
+        <span id="val-faces" class="slider-val">16 Pockets</span>
       </div>
-      <input type="range" id="slider-faces" min="0" max="12" value="6">
+      <input type="range" id="slider-faces" min="0" max="24" value="16">
     </div>
 
     <div class="slider-row">
       <div class="slider-header">
         <span>Carve Depth (Layers)</span>
-        <span id="val-depth" class="slider-val">1 - 2 Blocks Deep</span>
+        <span id="val-depth" class="slider-val">3 Blocks Deep</span>
       </div>
-      <input type="range" id="slider-depth" min="1" max="3" value="2">
+      <input type="range" id="slider-depth" min="1" max="4" value="3">
     </div>
 
     <div class="section-label">Display & Overlays</div>
@@ -635,11 +635,11 @@
         showStepEdges: true,
         autoRotate: true,
         explode: 0.0,
-        numCorners: 3,
-        cornerSize: 3,
-        numEdges: 4,
-        numFaces: 6,
-        maxDepth: 2,
+        numCorners: 7,          // 7 of 8 corners carved
+        cornerSize: 4,          // Up to 4x4x4 chunks
+        numEdges: 8,            // 8 of 12 edges carved
+        numFaces: 16,           // 16 face pockets
+        maxDepth: 3,            // Up to 3 blocks deep
         seed: 1042
       };
 
@@ -647,33 +647,33 @@
 
       // Presets
       const presets = {
-        architectural: {
-          numCorners: 3,
-          cornerSize: 3,
-          numEdges: 4,
-          numFaces: 6,
-          maxDepth: 2
-        },
-        cornerBites: {
-          numCorners: 5,
+        heavilyDismantled: {
+          numCorners: 7,
           cornerSize: 4,
-          numEdges: 2,
-          numFaces: 2,
+          numEdges: 8,
+          numFaces: 16,
           maxDepth: 3
         },
-        trenches: {
-          numCorners: 1,
-          cornerSize: 2,
-          numEdges: 8,
-          numFaces: 3,
-          maxDepth: 2
+        ruinedRelic: {
+          numCorners: 8,
+          cornerSize: 5,
+          numEdges: 11,
+          numFaces: 24,
+          maxDepth: 3
         },
-        pockets: {
-          numCorners: 1,
-          cornerSize: 2,
-          numEdges: 2,
+        steppedTerraces: {
+          numCorners: 6,
+          cornerSize: 4,
+          numEdges: 8,
           numFaces: 10,
-          maxDepth: 1
+          maxDepth: 4
+        },
+        swissCheese: {
+          numCorners: 4,
+          cornerSize: 3,
+          numEdges: 6,
+          numFaces: 24,
+          maxDepth: 2
         }
       };
 
@@ -697,7 +697,6 @@
         const rng = pseudoRandom(config.seed);
 
         // 1. Missing Corner Blocks (orthogonal cubical bites out of corners)
-        // 8 Corners of the cube
         const corners = [
           [0, 0, 0], [N-1, 0, 0], [0, N-1, 0], [N-1, N-1, 0],
           [0, 0, N-1], [N-1, 0, N-1], [0, N-1, N-1], [N-1, N-1, N-1]
@@ -709,17 +708,14 @@
 
         for (let c = 0; c < cornersToCarve; c++) {
           const [cx, cy, cz] = shuffledCorners[c];
-          // Vary the corner block cutout size (e.g. 2x2x2, 3x2x3, or 3x3x3)
-          const sx = Math.min(N - 1, Math.max(1, config.cornerSize - Math.floor(rng() * 1.5)));
-          const sy = Math.min(N - 1, Math.max(1, config.cornerSize - Math.floor(rng() * 1.5)));
-          const sz = Math.min(N - 1, Math.max(1, config.cornerSize - Math.floor(rng() * 1.5)));
+          // Vary the corner block cutout size
+          const sx = Math.min(N - 1, Math.max(1, config.cornerSize - Math.floor(rng() * 1.2)));
+          const sy = Math.min(N - 1, Math.max(1, config.cornerSize - Math.floor(rng() * 1.2)));
+          const sz = Math.min(N - 1, Math.max(1, config.cornerSize - Math.floor(rng() * 1.2)));
 
-          const x0 = cx === 0 ? 0 : N - sx;
-          const x1 = cx === 0 ? sx : N;
-          const y0 = cy === 0 ? 0 : N - sy;
-          const y1 = cy === 0 ? sy : N;
-          const z0 = cz === 0 ? 0 : N - sz;
-          const z1 = cz === 0 ? sz : N;
+          const x0 = cx === 0 ? 0 : N - sx, x1 = cx === 0 ? sx : N;
+          const y0 = cy === 0 ? 0 : N - sy, y1 = cy === 0 ? sy : N;
+          const z0 = cz === 0 ? 0 : N - sz, z1 = cz === 0 ? sz : N;
 
           for (let z = z0; z < z1; z++) {
             for (let y = y0; y < y1; y++) {
@@ -728,22 +724,38 @@
               }
             }
           }
+
+          // Cascading stepped inner cutout for rich architectural ziggurat steps
+          if (sx >= 3 && sy >= 3 && sz >= 3) {
+            const stepDepth = Math.min(config.maxDepth, 3);
+            for (let st = 1; st < stepDepth; st++) {
+              const csx = Math.max(1, sx - st);
+              const csy = Math.max(1, sy - st);
+              const csz = Math.max(1, sz - st);
+              const cx0 = cx === 0 ? 0 : N - csx, cx1 = cx === 0 ? csx : N;
+              const cy0 = cy === 0 ? 0 : N - csy, cy1 = cy === 0 ? csy : N;
+              const cz0 = cz === 0 ? 0 : N - csz, cz1 = cz === 0 ? csz : N;
+              for (let z = cz0; z < cz1; z++) {
+                for (let y = cy0; y < cy1; y++) {
+                  for (let x = cx0; x < cx1; x++) {
+                    voxels[x + y * N + z * N * N] = 0;
+                  }
+                }
+              }
+            }
+          }
         }
 
         // 2. Missing Edge Trenches (stepped trenches carved along edges)
-        // 12 Edges defined by axis and the 2 fixed coordinates
         const edges = [
-          // 4 Z-edges
           { axis: 'z', x: 0,   y: 0 },
           { axis: 'z', x: N-1, y: 0 },
           { axis: 'z', x: 0,   y: N-1 },
           { axis: 'z', x: N-1, y: N-1 },
-          // 4 Y-edges
           { axis: 'y', x: 0,   z: 0 },
           { axis: 'y', x: N-1, z: 0 },
           { axis: 'y', x: 0,   z: N-1 },
           { axis: 'y', x: N-1, z: N-1 },
-          // 4 X-edges
           { axis: 'x', y: 0,   z: 0 },
           { axis: 'x', y: N-1, z: 0 },
           { axis: 'x', y: 0,   z: N-1 },
@@ -755,15 +767,13 @@
 
         for (let e = 0; e < edgesToCarve; e++) {
           const edge = shuffledEdges[e];
-          const depth = Math.min(config.maxDepth, 2);
-          const tLen = Math.floor(N * 0.30 + rng() * N * 0.35); // length of trench
+          const depth = Math.min(config.maxDepth, Math.floor(1 + rng() * config.maxDepth));
+          const tLen = Math.floor(N * 0.25 + rng() * N * 0.45); // length of trench
           const tStart = Math.floor(rng() * (N - tLen));
 
           if (edge.axis === 'z') {
-            const x0 = edge.x === 0 ? 0 : N - depth;
-            const x1 = edge.x === 0 ? depth : N;
-            const y0 = edge.y === 0 ? 0 : N - depth;
-            const y1 = edge.y === 0 ? depth : N;
+            const x0 = edge.x === 0 ? 0 : N - depth, x1 = edge.x === 0 ? depth : N;
+            const y0 = edge.y === 0 ? 0 : N - depth, y1 = edge.y === 0 ? depth : N;
             for (let z = tStart; z < tStart + tLen; z++) {
               for (let y = y0; y < y1; y++) {
                 for (let x = x0; x < x1; x++) {
@@ -772,10 +782,8 @@
               }
             }
           } else if (edge.axis === 'y') {
-            const x0 = edge.x === 0 ? 0 : N - depth;
-            const x1 = edge.x === 0 ? depth : N;
-            const z0 = edge.z === 0 ? 0 : N - depth;
-            const z1 = edge.z === 0 ? depth : N;
+            const x0 = edge.x === 0 ? 0 : N - depth, x1 = edge.x === 0 ? depth : N;
+            const z0 = edge.z === 0 ? 0 : N - depth, z1 = edge.z === 0 ? depth : N;
             for (let y = tStart; y < tStart + tLen; y++) {
               for (let z = z0; z < z1; z++) {
                 for (let x = x0; x < x1; x++) {
@@ -784,10 +792,8 @@
               }
             }
           } else {
-            const y0 = edge.y === 0 ? 0 : N - depth;
-            const y1 = edge.y === 0 ? depth : N;
-            const z0 = edge.z === 0 ? 0 : N - depth;
-            const z1 = edge.z === 0 ? depth : N;
+            const y0 = edge.y === 0 ? 0 : N - depth, y1 = edge.y === 0 ? depth : N;
+            const z0 = edge.z === 0 ? 0 : N - depth, z1 = edge.z === 0 ? depth : N;
             for (let x = tStart; x < tStart + tLen; x++) {
               for (let z = z0; z < z1; z++) {
                 for (let y = y0; y < y1; y++) {
@@ -801,66 +807,66 @@
         // 3. Missing Face Pockets / Alcoves (rectangular groups of mini-cubes removed from faces)
         for (let p = 0; p < config.numFaces; p++) {
           const face = Math.floor(rng() * 6);
-          const pw = Math.floor(1 + rng() * 3); // 1x1, 2x2, or 3x2 pocket
-          const ph = Math.floor(1 + rng() * 3);
-          const pDepth = Math.min(config.maxDepth, Math.floor(1 + rng() * 1.5));
+          const pw = Math.floor(1 + rng() * 3.5); // 1x1, 2x2, 3x2, or 3x3 pocket
+          const ph = Math.floor(1 + rng() * 3.5);
+          const pDepth = Math.min(config.maxDepth, Math.floor(1 + rng() * config.maxDepth));
 
           if (face === 0) { // +Z face (z = N-1)
-            const x0 = Math.floor(2 + rng() * (N - pw - 4));
-            const y0 = Math.floor(2 + rng() * (N - ph - 4));
-            for (let z = N - pDepth; z < N; z++) {
-              for (let y = y0; y < y0 + ph; y++) {
-                for (let x = x0; x < x0 + pw; x++) {
+            const x0 = Math.floor(1 + rng() * (N - pw - 2));
+            const y0 = Math.floor(1 + rng() * (N - ph - 2));
+            for (let z = Math.max(0, N - pDepth); z < N; z++) {
+              for (let y = y0; y < Math.min(N, y0 + ph); y++) {
+                for (let x = x0; x < Math.min(N, x0 + pw); x++) {
                   voxels[x + y * N + z * N * N] = 0;
                 }
               }
             }
           } else if (face === 1) { // -Z face (z = 0)
-            const x0 = Math.floor(2 + rng() * (N - pw - 4));
-            const y0 = Math.floor(2 + rng() * (N - ph - 4));
-            for (let z = 0; z < pDepth; z++) {
-              for (let y = y0; y < y0 + ph; y++) {
-                for (let x = x0; x < x0 + pw; x++) {
+            const x0 = Math.floor(1 + rng() * (N - pw - 2));
+            const y0 = Math.floor(1 + rng() * (N - ph - 2));
+            for (let z = 0; z < Math.min(N, pDepth); z++) {
+              for (let y = y0; y < Math.min(N, y0 + ph); y++) {
+                for (let x = x0; x < Math.min(N, x0 + pw); x++) {
                   voxels[x + y * N + z * N * N] = 0;
                 }
               }
             }
           } else if (face === 2) { // +X face (x = N-1)
-            const y0 = Math.floor(2 + rng() * (N - pw - 4));
-            const z0 = Math.floor(2 + rng() * (N - ph - 4));
-            for (let x = N - pDepth; x < N; x++) {
-              for (let z = z0; z < z0 + ph; z++) {
-                for (let y = y0; y < y0 + pw; y++) {
+            const y0 = Math.floor(1 + rng() * (N - pw - 2));
+            const z0 = Math.floor(1 + rng() * (N - ph - 2));
+            for (let x = Math.max(0, N - pDepth); x < N; x++) {
+              for (let z = z0; z < Math.min(N, z0 + ph); z++) {
+                for (let y = y0; y < Math.min(N, y0 + pw); y++) {
                   voxels[x + y * N + z * N * N] = 0;
                 }
               }
             }
           } else if (face === 3) { // -X face (x = 0)
-            const y0 = Math.floor(2 + rng() * (N - pw - 4));
-            const z0 = Math.floor(2 + rng() * (N - ph - 4));
-            for (let x = 0; x < pDepth; x++) {
-              for (let z = z0; z < z0 + ph; z++) {
-                for (let y = y0; y < y0 + pw; y++) {
+            const y0 = Math.floor(1 + rng() * (N - pw - 2));
+            const z0 = Math.floor(1 + rng() * (N - ph - 2));
+            for (let x = 0; x < Math.min(N, pDepth); x++) {
+              for (let z = z0; z < Math.min(N, z0 + ph); z++) {
+                for (let y = y0; y < Math.min(N, y0 + pw); y++) {
                   voxels[x + y * N + z * N * N] = 0;
                 }
               }
             }
           } else if (face === 4) { // +Y face (y = N-1)
-            const x0 = Math.floor(2 + rng() * (N - pw - 4));
-            const z0 = Math.floor(2 + rng() * (N - ph - 4));
-            for (let y = N - pDepth; y < N; y++) {
-              for (let z = z0; z < z0 + ph; z++) {
-                for (let x = x0; x < x0 + pw; x++) {
+            const x0 = Math.floor(1 + rng() * (N - pw - 2));
+            const z0 = Math.floor(1 + rng() * (N - ph - 2));
+            for (let y = Math.max(0, N - pDepth); y < N; y++) {
+              for (let z = z0; z < Math.min(N, z0 + ph); z++) {
+                for (let x = x0; x < Math.min(N, x0 + pw); x++) {
                   voxels[x + y * N + z * N * N] = 0;
                 }
               }
             }
           } else { // -Y face (y = 0)
-            const x0 = Math.floor(2 + rng() * (N - pw - 4));
-            const z0 = Math.floor(2 + rng() * (N - ph - 4));
-            for (let y = 0; y < pDepth; y++) {
-              for (let z = z0; z < z0 + ph; z++) {
-                for (let x = x0; x < x0 + pw; x++) {
+            const x0 = Math.floor(1 + rng() * (N - pw - 2));
+            const z0 = Math.floor(1 + rng() * (N - ph - 2));
+            for (let y = 0; y < Math.min(N, pDepth); y++) {
+              for (let z = z0; z < Math.min(N, z0 + ph); z++) {
+                for (let x = x0; x < Math.min(N, x0 + pw); x++) {
                   voxels[x + y * N + z * N * N] = 0;
                 }
               }
@@ -1169,9 +1175,20 @@
         gl.bindBuffer(gl.ARRAY_BUFFER, edgeBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, edgeData, gl.DYNAMIC_DRAW);
 
+        // Calculate Missing Blocks Statistics
+        let solidCount = 0;
+        const totalVoxels = N * N * N;
+        for (let i = 0; i < totalVoxels; i++) {
+          if (voxels[i] === 1) solidCount++;
+        }
+        const missingCount = totalVoxels - solidCount;
+        const innerShell = Math.max(0, N - 2);
+        const surfaceShellVoxels = totalVoxels - innerShell * innerShell * innerShell;
+        const shellPct = Math.min(100, Math.round((missingCount / surfaceShellVoxels) * 100));
+
         const meshInfo = document.getElementById('mesh-info');
         if (meshInfo) {
-          meshInfo.textContent = `Voxel Mesh • ${N}³ Blocks • ${Math.round(meshVertexCount / 6)} Exposed Block Faces`;
+          meshInfo.textContent = `Voxel Mesh • ${N}³ • ${missingCount} Missing Blocks (~${shellPct}% of Shell) • ${Math.round(meshVertexCount / 6)} Quads`;
         }
       }
 
@@ -1516,7 +1533,7 @@
 
       // Reset
       document.getElementById('reset-btn').addEventListener('click', () => {
-        const p = presets.architectural;
+        const p = presets.heavilyDismantled;
         config.numCorners = p.numCorners;
         config.cornerSize = p.cornerSize;
         config.numEdges = p.numEdges;
@@ -1525,7 +1542,7 @@
         config.seed = 1042;
         syncSlidersFromConfig();
         rebuildVoxelMesh();
-        showToast('Reset to Architectural Blocks');
+        showToast('Reset to Heavily Dismantled');
       });
 
       // Randomize Carving
