@@ -1027,18 +1027,23 @@
         <div class="slider-container">
           <div class="slider-header">
             <span class="slider-title">CUBE SIZE</span>
-            <span id="cube-size-val" class="slider-badge">31&times;31</span>
+            <span id="cube-size-val" class="slider-badge">19&times;19</span>
           </div>
           <div class="slider-wrapper">
-            <input type="range" id="cube-size-slider" class="modern-slider" min="9" max="99" step="2" value="31">
+            <input type="range" id="cube-size-slider" class="modern-slider" min="9" max="99" step="2" value="19">
             <div class="slider-ticks">
               <span>9&times;9</span>
+              <span>19&times;19</span>
               <span>31&times;31</span>
               <span>61&times;61</span>
-              <span>99&times;99</span>
             </div>
           </div>
         </div>
+
+        <button id="reroll-topology-btn" class="preset-btn" style="width:100%; font-weight:600; color:#0284c7; padding:6px 0; margin-top:8px; display:flex; align-items:center; justify-content:center; gap:6px;">
+          <span>🎲</span>
+          <span>Re-roll Topology</span>
+        </button>
       </div>
     </div>
   </div>
@@ -1105,9 +1110,9 @@
       const extInst = gl.getExtension('ANGLE_instanced_arrays');
 
       // Dynamic Cube Dimensions
-      let SIZE = 31.0;
-      let HALF = SIZE / 2.0; // 15.5
-      let subdivisions = 31;
+      let SIZE = 19.0;
+      let HALF = SIZE / 2.0; // 9.5
+      let subdivisions = 19;
       let step = SIZE / subdivisions; // 1.0
 
       // --- Quaternion Arcball: Infinite 360° Omnidirectional Rotation ---
@@ -1118,7 +1123,7 @@
       let targetZoom = 1.65;
       let zoom = targetZoom;
 
-      let baseDistance = 58.0; // Scaled for 31x31 viewing
+      let baseDistance = 38.0; // Scaled for 19x19 viewing
 
       let isDragging = false;
       let prevMouseX = 0;
@@ -1636,6 +1641,252 @@
         uHalf: gl.getUniformLocation(progFog, 'uHalf')
       };
 
+      // Cube Face Coordinate Systems & Tangent Spaces
+      const faceBases = [
+        { tu: [ 1, 0, 0], tv: [ 0, 1, 0], n: [ 0, 0, 1] }, // 0: +Z
+        { tu: [-1, 0, 0], tv: [ 0, 1, 0], n: [ 0, 0,-1] }, // 1: -Z
+        { tu: [ 1, 0, 0], tv: [ 0, 0,-1], n: [ 0, 1, 0] }, // 2: +Y
+        { tu: [ 1, 0, 0], tv: [ 0, 0, 1], n: [ 0,-1, 0] }, // 3: -Y
+        { tu: [ 0, 0,-1], tv: [ 0, 1, 0], n: [ 1, 0, 0] }, // 4: +X
+        { tu: [ 0, 0, 1], tv: [ 0, 1, 0], n: [-1, 0, 0] }  // 5: -X
+      ];
+
+      // Dented Cube Voxel Topology Configuration
+      const topologyConfig = {
+        N: 19,
+        numCorners: 8,
+        cornerSize: 2,
+        numEdges: 8,
+        numFaces: 24,
+        maxDepth: 4,
+        seed: Math.floor(Math.random() * 10000000)
+      };
+
+      let voxelGrid = null;
+      let cellDepths = null;
+
+      function generateCubeTopology() {
+        const N = subdivisions;
+        voxelGrid = new Uint8Array(N * N * N);
+        voxelGrid.fill(1); // Solid N x N x N mini-cubes
+
+        let s = topologyConfig.seed;
+        function rng() {
+          s = (s * 9301 + 49297) % 233280;
+          return s / 233280;
+        }
+
+        // 1. Missing Corner Blocks (orthogonal cubical cutouts)
+        const corners = [
+          [0, 0, 0], [N-1, 0, 0], [0, N-1, 0], [N-1, N-1, 0],
+          [0, 0, N-1], [N-1, 0, N-1], [0, N-1, N-1], [N-1, N-1, N-1]
+        ];
+        const shuffledCorners = [...corners].sort(() => rng() - 0.5);
+        const cornersToCarve = Math.min(topologyConfig.numCorners, 8);
+        const cornerSize = Math.max(1, Math.round(topologyConfig.cornerSize * (N / 19)));
+
+        for (let c = 0; c < cornersToCarve; c++) {
+          const [cx, cy, cz] = shuffledCorners[c];
+          const sx = Math.min(N - 1, Math.max(1, cornerSize - Math.floor(rng() * 1.2)));
+          const sy = Math.min(N - 1, Math.max(1, cornerSize - Math.floor(rng() * 1.2)));
+          const sz = Math.min(N - 1, Math.max(1, cornerSize - Math.floor(rng() * 1.2)));
+          const x0 = cx === 0 ? 0 : N - sx, x1 = cx === 0 ? sx : N;
+          const y0 = cy === 0 ? 0 : N - sy, y1 = cy === 0 ? sy : N;
+          const z0 = cz === 0 ? 0 : N - sz, z1 = cz === 0 ? sz : N;
+          for (let z = z0; z < z1; z++) {
+            for (let y = y0; y < y1; y++) {
+              for (let x = x0; x < x1; x++) {
+                voxelGrid[x + y * N + z * N * N] = 0;
+              }
+            }
+          }
+        }
+
+        // 2. Missing Edge Trenches (stepped trenches carved along edges)
+        const edges = [
+          { axis: 'z', x: 0,   y: 0 },
+          { axis: 'z', x: N-1, y: 0 },
+          { axis: 'z', x: 0,   y: N-1 },
+          { axis: 'z', x: N-1, y: N-1 },
+          { axis: 'y', x: 0,   z: 0 },
+          { axis: 'y', x: N-1, z: 0 },
+          { axis: 'y', x: 0,   z: N-1 },
+          { axis: 'y', x: N-1, z: N-1 },
+          { axis: 'x', y: 0,   z: 0 },
+          { axis: 'x', y: N-1, z: 0 },
+          { axis: 'x', y: 0,   z: N-1 },
+          { axis: 'x', y: N-1, z: N-1 }
+        ];
+        const shuffledEdges = [...edges].sort(() => rng() - 0.5);
+        const edgesToCarve = Math.min(topologyConfig.numEdges, 12);
+        const maxD = Math.max(1, Math.min(topologyConfig.maxDepth, Math.floor(N / 4)));
+
+        for (let e = 0; e < edgesToCarve; e++) {
+          const edge = shuffledEdges[e];
+          const depth = Math.min(maxD, Math.floor(1 + rng() * maxD));
+          const tLen = Math.floor(N * 0.25 + rng() * N * 0.45);
+          const tStart = Math.floor(rng() * (N - tLen));
+          if (edge.axis === 'z') {
+            const x0 = edge.x === 0 ? 0 : N - depth, x1 = edge.x === 0 ? depth : N;
+            const y0 = edge.y === 0 ? 0 : N - depth, y1 = edge.y === 0 ? depth : N;
+            for (let z = tStart; z < tStart + tLen; z++) {
+              for (let y = y0; y < y1; y++) {
+                for (let x = x0; x < x1; x++) {
+                  voxelGrid[x + y * N + z * N * N] = 0;
+                }
+              }
+            }
+          } else if (edge.axis === 'y') {
+            const x0 = edge.x === 0 ? 0 : N - depth, x1 = edge.x === 0 ? depth : N;
+            const z0 = edge.z === 0 ? 0 : N - depth, z1 = edge.z === 0 ? depth : N;
+            for (let y = tStart; y < tStart + tLen; y++) {
+              for (let z = z0; z < z1; z++) {
+                for (let x = x0; x < x1; x++) {
+                  voxelGrid[x + y * N + z * N * N] = 0;
+                }
+              }
+            }
+          } else {
+            const y0 = edge.y === 0 ? 0 : N - depth, y1 = edge.y === 0 ? depth : N;
+            const z0 = edge.z === 0 ? 0 : N - depth, z1 = edge.z === 0 ? depth : N;
+            for (let x = tStart; x < tStart + tLen; x++) {
+              for (let z = z0; z < z1; z++) {
+                for (let y = y0; y < y1; y++) {
+                  voxelGrid[x + y * N + z * N * N] = 0;
+                }
+              }
+            }
+          }
+        }
+
+        // 3. Missing Face Pockets / Alcoves (groups of mini-cubes removed from face interiors)
+        const numFacesToCarve = Math.round(topologyConfig.numFaces * Math.max(1, N / 19));
+        for (let p = 0; p < numFacesToCarve; p++) {
+          const face = Math.floor(rng() * 6);
+          const pw = Math.floor(1 + rng() * 3.5);
+          const ph = Math.floor(1 + rng() * 3.5);
+          const pDepth = Math.min(maxD, Math.floor(1 + rng() * maxD));
+          if (face === 0) { // +Z
+            const x0 = Math.floor(1 + rng() * Math.max(1, N - pw - 2));
+            const y0 = Math.floor(1 + rng() * Math.max(1, N - ph - 2));
+            for (let z = Math.max(0, N - pDepth); z < N; z++) {
+              for (let y = y0; y < Math.min(N, y0 + ph); y++) {
+                for (let x = x0; x < Math.min(N, x0 + pw); x++) {
+                  voxelGrid[x + y * N + z * N * N] = 0;
+                }
+              }
+            }
+          } else if (face === 1) { // -Z
+            const x0 = Math.floor(1 + rng() * Math.max(1, N - pw - 2));
+            const y0 = Math.floor(1 + rng() * Math.max(1, N - ph - 2));
+            for (let z = 0; z < Math.min(N, pDepth); z++) {
+              for (let y = y0; y < Math.min(N, y0 + ph); y++) {
+                for (let x = x0; x < Math.min(N, x0 + pw); x++) {
+                  voxelGrid[x + y * N + z * N * N] = 0;
+                }
+              }
+            }
+          } else if (face === 2) { // +Y
+            const x0 = Math.floor(1 + rng() * Math.max(1, N - pw - 2));
+            const z0 = Math.floor(1 + rng() * Math.max(1, N - ph - 2));
+            for (let y = Math.max(0, N - pDepth); y < N; y++) {
+              for (let z = z0; z < Math.min(N, z0 + ph); z++) {
+                for (let x = x0; x < Math.min(N, x0 + pw); x++) {
+                  voxelGrid[x + y * N + z * N * N] = 0;
+                }
+              }
+            }
+          } else if (face === 3) { // -Y
+            const x0 = Math.floor(1 + rng() * Math.max(1, N - pw - 2));
+            const z0 = Math.floor(1 + rng() * Math.max(1, N - ph - 2));
+            for (let y = 0; y < Math.min(N, pDepth); y++) {
+              for (let z = z0; z < Math.min(N, z0 + ph); z++) {
+                for (let x = x0; x < Math.min(N, x0 + pw); x++) {
+                  voxelGrid[x + y * N + z * N * N] = 0;
+                }
+              }
+            }
+          } else if (face === 4) { // +X
+            const y0 = Math.floor(1 + rng() * Math.max(1, N - pw - 2));
+            const z0 = Math.floor(1 + rng() * Math.max(1, N - ph - 2));
+            for (let x = Math.max(0, N - pDepth); x < N; x++) {
+              for (let z = z0; z < Math.min(N, z0 + ph); z++) {
+                for (let y = y0; y < Math.min(N, y0 + pw); y++) {
+                  voxelGrid[x + y * N + z * N * N] = 0;
+                }
+              }
+            }
+          } else { // -X
+            const y0 = Math.floor(1 + rng() * Math.max(1, N - pw - 2));
+            const z0 = Math.floor(1 + rng() * Math.max(1, N - ph - 2));
+            for (let x = 0; x < Math.min(N, pDepth); x++) {
+              for (let z = z0; z < Math.min(N, z0 + ph); z++) {
+                for (let y = y0; y < Math.min(N, y0 + pw); y++) {
+                  voxelGrid[x + y * N + z * N * N] = 0;
+                }
+              }
+            }
+          }
+        }
+
+        function isSolid(x, y, z) {
+          if (x < 0 || x >= N || y < 0 || y >= N || z < 0 || z >= N) return false;
+          return voxelGrid[x + y * N + z * N * N] === 1;
+        }
+
+        // Precompute recessed cellDepths for each face
+        cellDepths = Array.from({length: 6}, () =>
+          Array.from({length: N}, () => new Uint8Array(N))
+        );
+
+        for (let u = 0; u < N; u++) {
+          for (let v = 0; v < N; v++) {
+            // Face 0 (+Z): z = N-1 inward
+            let d0 = 0;
+            while (d0 < maxD && !isSolid(u, v, N - 1 - d0)) d0++;
+            cellDepths[0][u][v] = d0;
+
+            // Face 1 (-Z): z = 0 inward
+            let d1 = 0;
+            while (d1 < maxD && !isSolid((N - 1) - u, v, d1)) d1++;
+            cellDepths[1][u][v] = d1;
+
+            // Face 2 (+Y): y = N-1 inward
+            let d2 = 0;
+            while (d2 < maxD && !isSolid(u, N - 1 - d2, (N - 1) - v)) d2++;
+            cellDepths[2][u][v] = d2;
+
+            // Face 3 (-Y): y = 0 inward
+            let d3 = 0;
+            while (d3 < maxD && !isSolid(u, d3, v)) d3++;
+            cellDepths[3][u][v] = d3;
+
+            // Face 4 (+X): x = N-1 inward
+            let d4 = 0;
+            while (d4 < maxD && !isSolid(N - 1 - d4, v, (N - 1) - u)) d4++;
+            cellDepths[4][u][v] = d4;
+
+            // Face 5 (-X): x = 0 inward
+            let d5 = 0;
+            while (d5 < maxD && !isSolid(d5, v, u)) d5++;
+            cellDepths[5][u][v] = d5;
+          }
+        }
+      }
+
+      function getCellCenter(f, u_idx, v_idx) {
+        const b = faceBases[f];
+        const u = -HALF + (u_idx + 0.5) * step;
+        const v = -HALF + (v_idx + 0.5) * step;
+        const depth = (cellDepths && cellDepths[f] && cellDepths[f][u_idx]) ? cellDepths[f][u_idx][v_idx] : 0;
+        const h = HALF - depth * step;
+        return [
+          u * b.tu[0] + v * b.tv[0] + h * b.n[0],
+          u * b.tu[1] + v * b.tv[1] + h * b.n[1],
+          u * b.tu[2] + v * b.tv[2] + h * b.n[2]
+        ];
+      }
+
       // Interior Fog Bounding Box Geometry
       const fogVertices = [];
       function addFogQuad(p1, p2, p3, p4) {
@@ -1644,7 +1895,7 @@
       }
       const fogBuffer = gl.createBuffer();
 
-      // Colorless Wireframe Grid (Monochrome Silver/White)
+      // Colorless Wireframe Grid & 3D Step Risers
       const lineData = [];
       function pushLine(x1, y1, z1, x2, y2, z2, nx, ny, nz, r, g, b, a) {
         lineData.push(x1, y1, z1, nx, ny, nz, r, g, b, a);
@@ -1654,7 +1905,10 @@
       let lineCount = 0;
 
       function rebuildGridAndFog() {
-        const fogBoxHalf = HALF - 0.05;
+        if (!voxelGrid) generateCubeTopology();
+
+        const maxD = (topologyConfig && topologyConfig.maxDepth) ? topologyConfig.maxDepth : 4;
+        const fogBoxHalf = Math.max(1.0, HALF - (maxD * step) - 0.2);
         fogVertices.length = 0;
         const Hf = fogBoxHalf;
         addFogQuad([-Hf,-Hf, Hf], [ Hf,-Hf, Hf], [ Hf, Hf, Hf], [-Hf, Hf, Hf]); // +Z
@@ -1667,43 +1921,96 @@
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(fogVertices), gl.STATIC_DRAW);
 
         lineData.length = 0;
-        const gc = [0.32, 0.36, 0.42, 0.22];
-        for (let i = 1; i < subdivisions; i++) {
-          const t = -HALF + i * step;
-          pushLine(-HALF, t,  HALF,  HALF, t,  HALF, 0, 0, 1, ...gc);
-          pushLine(t, -HALF,  HALF,  t,  HALF,  HALF, 0, 0, 1, ...gc);
-          pushLine(-HALF, t, -HALF,  HALF, t, -HALF, 0, 0, -1, ...gc);
-          pushLine(t, -HALF, -HALF,  t,  HALF, -HALF, 0, 0, -1, ...gc);
-          pushLine(-HALF,  HALF, t,  HALF,  HALF, t, 0, 1, 0, ...gc);
-          pushLine(t,  HALF, -HALF,  t,  HALF,  HALF, 0, 1, 0, ...gc);
-          pushLine(-HALF, -HALF, t,  HALF, -HALF, t, 0, -1, 0, ...gc);
-          pushLine(t, -HALF, -HALF,  t, -HALF,  HALF, 0, -1, 0, ...gc);
-          pushLine( HALF, -HALF, t,  HALF,  HALF, t, 1, 0, 0, ...gc);
-          pushLine( HALF, t, -HALF,  HALF, t,  HALF, 1, 0, 0, ...gc);
-          pushLine(-HALF, -HALF, t, -HALF,  HALF, t, -1, 0, 0, ...gc);
-          pushLine(-HALF, t, -HALF, -HALF, t,  HALF, -1, 0, 0, ...gc);
+        const N = subdivisions;
+        const halfStep = step * 0.5;
+        const lineSegments = new Map();
+
+        function keyVec(v) {
+          return v[0].toFixed(2) + ',' + v[1].toFixed(2) + ',' + v[2].toFixed(2);
         }
 
-        const ec = [0.46, 0.52, 0.60, 0.45];
-        const corners = [
-          [-HALF, -HALF, -HALF], [ HALF, -HALF, -HALF],
-          [ HALF,  HALF, -HALF], [-HALF,  HALF, -HALF],
-          [-HALF, -HALF,  HALF], [ HALF, -HALF,  HALF],
-          [ HALF,  HALF,  HALF], [-HALF,  HALF,  HALF]
+        function addSegment(p1, p2, normal) {
+          const k1 = keyVec(p1);
+          const k2 = keyVec(p2);
+          const segKey = k1 < k2 ? k1 + '|' + k2 : k2 + '|' + k1;
+          const existing = lineSegments.get(segKey);
+          if (!existing) {
+            lineSegments.set(segKey, { p1, p2, normal, isCrease: false, count: 1 });
+          } else {
+            existing.count++;
+            const dot = existing.normal[0]*normal[0] + existing.normal[1]*normal[1] + existing.normal[2]*normal[2];
+            if (dot < 0.95) {
+              existing.isCrease = true;
+            }
+          }
+        }
+
+        const DIRS = [
+          { dir: [ 1,  0,  0], n: [ 1,  0,  0], u: [0, 0,-1], v: [0, 1, 0] }, // +X
+          { dir: [-1,  0,  0], n: [-1,  0,  0], u: [0, 0, 1], v: [0, 1, 0] }, // -X
+          { dir: [ 0,  1,  0], n: [ 0,  1,  0], u: [1, 0, 0], v: [0, 0,-1] }, // +Y
+          { dir: [ 0, -1,  0], n: [ 0, -1,  0], u: [1, 0, 0], v: [0, 0, 1] }, // -Y
+          { dir: [ 0,  0,  1], n: [ 0,  0,  1], u: [1, 0, 0], v: [0, 1, 0] }, // +Z
+          { dir: [ 0,  0, -1], n: [ 0,  0, -1], u: [-1, 0, 0], v: [0, 1, 0] } // -Z
         ];
-        const edgePairs = [
-          [0,1], [1,2], [2,3], [3,0],
-          [4,5], [5,6], [6,7], [7,4],
-          [0,4], [1,5], [2,6], [3,7]
-        ];
-        for (const [i1, i2] of edgePairs) {
-          const c1 = corners[i1];
-          const c2 = corners[i2];
-          const mx = (c1[0] + c2[0]) * 0.5;
-          const my = (c1[1] + c2[1]) * 0.5;
-          const mz = (c1[2] + c2[2]) * 0.5;
+
+        function isSolid(x, y, z) {
+          if (x < 0 || x >= N || y < 0 || y >= N || z < 0 || z >= N) return false;
+          return voxelGrid[x + y * N + z * N * N] === 1;
+        }
+
+        for (let z = 0; z < N; z++) {
+          for (let y = 0; y < N; y++) {
+            for (let x = 0; x < N; x++) {
+              if (voxelGrid[x + y * N + z * N * N] !== 1) continue;
+
+              const cx = -HALF + (x + 0.5) * step;
+              const cy = -HALF + (y + 0.5) * step;
+              const cz = -HALF + (z + 0.5) * step;
+
+              for (let d = 0; d < 6; d++) {
+                const info = DIRS[d];
+                const nx = x + info.dir[0];
+                const ny = y + info.dir[1];
+                const nz = z + info.dir[2];
+
+                if (!isSolid(nx, ny, nz)) {
+                  const fx = cx + info.n[0] * halfStep;
+                  const fy = cy + info.n[1] * halfStep;
+                  const fz = cz + info.n[2] * halfStep;
+
+                  const uX = info.u[0] * halfStep, uY = info.u[1] * halfStep, uZ = info.u[2] * halfStep;
+                  const vX = info.v[0] * halfStep, vY = info.v[1] * halfStep, vZ = info.v[2] * halfStep;
+
+                  const p00 = [fx - uX - vX, fy - uY - vY, fz - uZ - vZ];
+                  const p10 = [fx + uX - vX, fy + uY - vY, fz + uZ - vZ];
+                  const p11 = [fx + uX + vX, fy + uY + vY, fz + uZ + vZ];
+                  const p01 = [fx - uX + vX, fy - uY + vY, fz - uZ + vZ];
+
+                  addSegment(p00, p10, info.n);
+                  addSegment(p10, p11, info.n);
+                  addSegment(p11, p01, info.n);
+                  addSegment(p01, p00, info.n);
+                }
+              }
+            }
+          }
+        }
+
+        const gc = [0.32, 0.36, 0.42, 0.22];
+        const ec = [0.46, 0.52, 0.60, 0.50];
+
+        for (const seg of lineSegments.values()) {
+          const isCrease = seg.isCrease || seg.count === 1;
+          const col = isCrease ? ec : gc;
+          const p1 = seg.p1;
+          const p2 = seg.p2;
+          const mx = (p1[0] + p2[0]) * 0.5;
+          const my = (p1[1] + p2[1]) * 0.5;
+          const mz = (p1[2] + p2[2]) * 0.5;
           const mlen = Math.hypot(mx, my, mz) || 1;
-          pushLine(...c1, ...c2, mx / mlen, my / mlen, mz / mlen, ...ec);
+          const nx = mx / mlen, ny = my / mlen, nz = mz / mlen;
+          pushLine(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2], nx, ny, nz, ...col);
         }
 
         gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer);
@@ -2290,6 +2597,9 @@
         if (cubeSizeVal) cubeSizeVal.innerHTML = `${subdivisions}&times;${subdivisions}`;
         updateSliderTrack(subdivisions);
 
+        // Re-generate topology for new dimension
+        generateCubeTopology();
+
         // Rebuild gridlines & fog
         rebuildGridAndFog();
 
@@ -2312,11 +2622,31 @@
         seedTiles(targetPop);
       }
 
+      function rerollTopology() {
+        topologyConfig.seed = Math.floor(Math.random() * 10000000);
+        generateCubeTopology();
+        rebuildGridAndFog();
+        for (let i = 0; i < tiles.length; i++) {
+          const t = tiles[i];
+          t.currentPos = getCellCenter(t.face, t.u, t.v);
+        }
+        if (typeof showToast === 'function') {
+          showToast('🎲 Carved New Topology');
+        }
+      }
+
       if (cubeSizeSlider) {
         cubeSizeSlider.addEventListener('input', (e) => {
           setCubeSize(e.target.value);
         });
         updateSliderTrack(subdivisions);
+      }
+
+      const rerollBtn = document.getElementById('reroll-topology-btn');
+      if (rerollBtn) {
+        rerollBtn.addEventListener('click', () => {
+          rerollTopology();
+        });
       }
 
       // --- Force Power Slider Controller ---
@@ -2737,14 +3067,18 @@
       const presetToastEl = document.getElementById('preset-toast');
       const DIAL_CIRCUMFERENCE = 138.23; // 2 * Math.PI * 22
 
-      function showPresetToast(label) {
+      function showToast(msg) {
         if (!presetToastEl) return;
-        presetToastEl.textContent = `⚡ Preset Cycled: ${label}`;
+        presetToastEl.textContent = msg;
         presetToastEl.classList.add('show');
         if (toastTimeout) clearTimeout(toastTimeout);
         toastTimeout = setTimeout(() => {
           presetToastEl.classList.remove('show');
-        }, 2400);
+        }, 2200);
+      }
+
+      function showPresetToast(label) {
+        showToast(`⚡ Preset Cycled: ${label}`);
       }
 
       function setActivePreset(presetKey, showNotification = false) {
@@ -3149,26 +3483,6 @@
       }
 
       buildMatrixTable();
-
-      const faceBases = [
-        { tu: [ 1, 0, 0], tv: [ 0, 1, 0], n: [ 0, 0, 1] }, // 0: +Z
-        { tu: [-1, 0, 0], tv: [ 0, 1, 0], n: [ 0, 0,-1] }, // 1: -Z
-        { tu: [ 1, 0, 0], tv: [ 0, 0,-1], n: [ 0, 1, 0] }, // 2: +Y
-        { tu: [ 1, 0, 0], tv: [ 0, 0, 1], n: [ 0,-1, 0] }, // 3: -Y
-        { tu: [ 0, 0,-1], tv: [ 0, 1, 0], n: [ 1, 0, 0] }, // 4: +X
-        { tu: [ 0, 0, 1], tv: [ 0, 1, 0], n: [-1, 0, 0] }  // 5: -X
-      ];
-
-      function getCellCenter(f, u_idx, v_idx) {
-        const b = faceBases[f];
-        const u = -HALF + (u_idx + 0.5) * step;
-        const v = -HALF + (v_idx + 0.5) * step;
-        return [
-          u * b.tu[0] + v * b.tv[0] + HALF * b.n[0],
-          u * b.tu[1] + v * b.tv[1] + HALF * b.n[1],
-          u * b.tu[2] + v * b.tv[2] + HALF * b.n[2]
-        ];
-      }
 
       // Transition across adjacent cube faces when crossing grid borders
       function getFaceTransition(f, u, v, du, dv) {
@@ -3874,9 +4188,11 @@
         const b = faceBases[face];
         const uCoord = -HALF + (u + 0.5) * step;
         const vCoord = -HALF + (v + 0.5) * step;
-        const cx = uCoord * b.tu[0] + vCoord * b.tv[0] + HALF * b.n[0];
-        const cy = uCoord * b.tu[1] + vCoord * b.tv[1] + HALF * b.n[1];
-        const cz = uCoord * b.tu[2] + vCoord * b.tv[2] + HALF * b.n[2];
+        const depth = (cellDepths && cellDepths[face] && cellDepths[face][u]) ? cellDepths[face][u][v] : 0;
+        const h = HALF - depth * step;
+        const cx = uCoord * b.tu[0] + vCoord * b.tv[0] + h * b.n[0];
+        const cy = uCoord * b.tu[1] + vCoord * b.tv[1] + h * b.n[1];
+        const cz = uCoord * b.tu[2] + vCoord * b.tv[2] + h * b.n[2];
         const su = stretchDir ? (1.0 + Math.abs(stretchDir[0]) * 0.10) : 1.0;
         const sv = stretchDir ? (1.0 + Math.abs(stretchDir[1]) * 0.10) : 1.0;
 
@@ -4022,26 +4338,24 @@
           tvY = dotTv1E * eY + dotTv1N2 * n2RotY;
           tvZ = dotTv1E * eZ + dotTv1N2 * n2RotZ;
 
-          const uCoord1 = -HALF + (t.fromU + 0.5) * step;
-          const vCoord1 = -HALF + (t.fromV + 0.5) * step;
-          const c1X = uCoord1 * b1.tu[0] + vCoord1 * b1.tv[0] + HALF * b1.n[0];
-          const c1Y = uCoord1 * b1.tu[1] + vCoord1 * b1.tv[1] + HALF * b1.n[1];
-          const c1Z = uCoord1 * b1.tu[2] + vCoord1 * b1.tv[2] + HALF * b1.n[2];
+          const c1 = getCellCenter(t.fromFace, t.fromU, t.fromV);
+          const c2 = getCellCenter(t.targetFace, t.targetU, t.targetV);
 
-          const pEdgeX = c1X + 0.5 * step * n2[0];
-          const pEdgeY = c1Y + 0.5 * step * n2[1];
-          const pEdgeZ = c1Z + 0.5 * step * n2[2];
+          // Edge midpoint connecting c1 and c2 across face boundary
+          const midX = (c1[0] + c2[0]) * 0.5 + 0.35 * step * (n1[0] + n2[0]) * 0.7071;
+          const midY = (c1[1] + c2[1]) * 0.5 + 0.35 * step * (n1[1] + n2[1]) * 0.7071;
+          const midZ = (c1[2] + c2[2]) * 0.5 + 0.35 * step * (n1[2] + n2[2]) * 0.7071;
 
           if (ease <= 0.5) {
             const t1 = ease * 2.0;
-            cX = c1X + t1 * 0.5 * step * n2[0];
-            cY = c1Y + t1 * 0.5 * step * n2[1];
-            cZ = c1Z + t1 * 0.5 * step * n2[2];
+            cX = (1.0 - t1) * c1[0] + t1 * midX;
+            cY = (1.0 - t1) * c1[1] + t1 * midY;
+            cZ = (1.0 - t1) * c1[2] + t1 * midZ;
           } else {
             const t2 = (ease - 0.5) * 2.0;
-            cX = pEdgeX - t2 * 0.5 * step * n1[0];
-            cY = pEdgeY - t2 * 0.5 * step * n1[1];
-            cZ = pEdgeZ - t2 * 0.5 * step * n1[2];
+            cX = (1.0 - t2) * midX + t2 * c2[0];
+            cY = (1.0 - t2) * midY + t2 * c2[1];
+            cZ = (1.0 - t2) * midZ + t2 * c2[2];
           }
 
           const cornerLift = Math.sin(ease * Math.PI) * 0.035;
@@ -4054,19 +4368,20 @@
           nX = b.n[0]; nY = b.n[1]; nZ = b.n[2];
           if (t.isMoving) {
             const ease = getTileEase(t, p);
-            const u1 = -HALF + (t.fromU + 0.5) * step;
-            const v1 = -HALF + (t.fromV + 0.5) * step;
-            const u2 = -HALF + (t.targetU + 0.5) * step;
-            const v2 = -HALF + (t.targetV + 0.5) * step;
-            const c1X = u1 * b.tu[0] + v1 * b.tv[0] + HALF * b.n[0];
-            const c1Y = u1 * b.tu[1] + v1 * b.tv[1] + HALF * b.n[1];
-            const c1Z = u1 * b.tu[2] + v1 * b.tv[2] + HALF * b.n[2];
-            const c2X = u2 * b.tu[0] + v2 * b.tv[0] + HALF * b.n[0];
-            const c2Y = u2 * b.tu[1] + v2 * b.tv[1] + HALF * b.n[1];
-            const c2Z = u2 * b.tu[2] + v2 * b.tv[2] + HALF * b.n[2];
-            cX = (1.0 - ease) * c1X + ease * c2X;
-            cY = (1.0 - ease) * c1Y + ease * c2Y;
-            cZ = (1.0 - ease) * c1Z + ease * c2Z;
+            const c1 = getCellCenter(t.face, t.fromU, t.fromV);
+            const c2 = getCellCenter(t.face, t.targetU, t.targetV);
+            cX = (1.0 - ease) * c1[0] + ease * c2[0];
+            cY = (1.0 - ease) * c1[1] + ease * c2[1];
+            cZ = (1.0 - ease) * c1[2] + ease * c2[2];
+
+            const d1 = (cellDepths && cellDepths[t.face] && cellDepths[t.face][t.fromU]) ? cellDepths[t.face][t.fromU][t.fromV] : 0;
+            const d2 = (cellDepths && cellDepths[t.face] && cellDepths[t.face][t.targetU]) ? cellDepths[t.face][t.targetU][t.targetV] : 0;
+            if (d1 !== d2) {
+              const hop = Math.sin(ease * Math.PI) * 0.12 * step;
+              cX += b.n[0] * hop;
+              cY += b.n[1] * hop;
+              cZ += b.n[2] * hop;
+            }
 
             if (isMotionBlur) {
               // Subtle longitudinal shutter overlap strictly along movement axis
@@ -4083,11 +4398,8 @@
           } else {
             tuX = b.tu[0]; tuY = b.tu[1]; tuZ = b.tu[2];
             tvX = b.tv[0]; tvY = b.tv[1]; tvZ = b.tv[2];
-            const uCoord = -HALF + (t.u + 0.5) * step;
-            const vCoord = -HALF + (t.v + 0.5) * step;
-            cX = uCoord * b.tu[0] + vCoord * b.tv[0] + HALF * b.n[0];
-            cY = uCoord * b.tu[1] + vCoord * b.tv[1] + HALF * b.n[1];
-            cZ = uCoord * b.tu[2] + vCoord * b.tv[2] + HALF * b.n[2];
+            const pos = getCellCenter(t.face, t.u, t.v);
+            cX = pos[0]; cY = pos[1]; cZ = pos[2];
           }
         }
         if (!isMotionBlur && alpha >= 0.99) {
