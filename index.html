@@ -1951,13 +1951,14 @@
                 if (isSolid(vx, vy, vz)) break;
                 d++;
               }
-              // Tiles strictly follow the faces of the cube (d === 0) and never enter or jump across dents
-              if (d === 0) {
-                cellDepths[f][u][v] = 0;
+              // Both outer faces (d === 0) and dent faces (0 < d <= maxD) are valid physical surfaces.
+              // Hollow cutouts and voids (d > maxD) are strictly invalid to prevent floating in mid-air.
+              if (d <= maxD) {
+                cellDepths[f][u][v] = d;
                 cellValid[f][u][v] = 1;
                 validCellsByFace[f].push({ u, v });
               } else {
-                cellDepths[f][u][v] = d;
+                cellDepths[f][u][v] = 0;
                 cellValid[f][u][v] = 0;
               }
             }
@@ -4544,11 +4545,9 @@
 
             const d1 = (cellDepths && cellDepths[t.face] && cellDepths[t.face][t.fromU]) ? cellDepths[t.face][t.fromU][t.fromV] : 0;
             const d2 = (cellDepths && cellDepths[t.face] && cellDepths[t.face][t.targetU]) ? cellDepths[t.face][t.targetU][t.targetV] : 0;
+            // No outward hop into thin air - tiles stay strictly flush to the physical surface
             if (d1 !== d2) {
-              const hop = Math.sin(ease * Math.PI) * 0.12 * step;
-              cX += b.n[0] * hop;
-              cY += b.n[1] * hop;
-              cZ += b.n[2] * hop;
+              // Smooth flush step transition without jumping outward
             }
 
             if (isMotionBlur) {
