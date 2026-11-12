@@ -1951,12 +1951,13 @@
                 if (isSolid(vx, vy, vz)) break;
                 d++;
               }
-              if (d <= maxD) {
-                cellDepths[f][u][v] = d;
+              // Tiles strictly follow the faces of the cube (d === 0) and never enter or jump across dents
+              if (d === 0) {
+                cellDepths[f][u][v] = 0;
                 cellValid[f][u][v] = 1;
                 validCellsByFace[f].push({ u, v });
               } else {
-                cellDepths[f][u][v] = 0;
+                cellDepths[f][u][v] = d;
                 cellValid[f][u][v] = 0;
               }
             }
