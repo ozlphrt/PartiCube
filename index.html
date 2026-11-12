@@ -1756,6 +1756,11 @@
       let cellValid = null;
       const validCellsByFace = Array.from({length: 6}, () => []);
 
+      // Complete Manifold Facet Graph for Dented Cube (treating all dent faces and walls as cube faces)
+      let facetList = [];
+      let facetMap = new Map();
+      let facetOccupant = null;
+
       function generateCubeTopology() {
         const N = subdivisions;
         voxelGrid = new Uint8Array(N * N * N);
@@ -2052,6 +2057,9 @@
           return voxelGrid[x + y * N + z * N * N] === 1;
         }
 
+        facetList = [];
+        facetMap = new Map();
+
         for (let z = 0; z < N; z++) {
           for (let y = 0; y < N; y++) {
             for (let x = 0; x < N; x++) {
@@ -2071,6 +2079,32 @@
                   const fx = cx + info.n[0] * halfStep;
                   const fy = cy + info.n[1] * halfStep;
                   const fz = cz + info.n[2] * halfStep;
+
+                  let uCoord = 0, vCoord = 0;
+                  if (d === 0) { uCoord = (N - 1) - z; vCoord = y; }
+                  else if (d === 1) { uCoord = z; vCoord = y; }
+                  else if (d === 2) { uCoord = x; vCoord = (N - 1) - z; }
+                  else if (d === 3) { uCoord = x; vCoord = z; }
+                  else if (d === 4) { uCoord = x; vCoord = y; }
+                  else { uCoord = (N - 1) - x; vCoord = y; }
+
+                  const facetId = facetList.length;
+                  const key = `${x},${y},${z},${d}`;
+                  const facet = {
+                    id: facetId,
+                    x: x, y: y, z: z, d: d,
+                    u: uCoord, v: vCoord,
+                    p: [fx, fy, fz],
+                    n: info.n,
+                    tu: info.u,
+                    tv: info.v,
+                    neighbors: [],
+                    nextDirs: [],
+                    foldTypes: [],
+                    edgeMids: []
+                  };
+                  facetMap.set(key, facet);
+                  facetList.push(facet);
 
                   const uX = info.u[0] * halfStep, uY = info.u[1] * halfStep, uZ = info.u[2] * halfStep;
                   const vX = info.v[0] * halfStep, vY = info.v[1] * halfStep, vZ = info.v[2] * halfStep;
@@ -2107,6 +2141,78 @@
             }
           }
         }
+
+        function dirIndex(nx, ny, nz) {
+          for (let i = 0; i < 6; i++) {
+            if (DIRS[i].n[0] === nx && DIRS[i].n[1] === ny && DIRS[i].n[2] === nz) return i;
+          }
+          return 0;
+        }
+
+        // Establish 100% watertight 4-neighbor connectivity across entire dented manifold
+        for (let i = 0; i < facetList.length; i++) {
+          const facet = facetList[i];
+          const info = DIRS[facet.d];
+          const tangents = [
+            info.u,
+            [-info.u[0], -info.u[1], -info.u[2]],
+            info.v,
+            [-info.v[0], -info.v[1], -info.v[2]]
+          ];
+          facet.tangents = tangents;
+
+          for (let edge = 0; edge < 4; edge++) {
+            const T = tangents[edge];
+            const N_vec = info.n;
+            const adjX = facet.x + T[0], adjY = facet.y + T[1], adjZ = facet.z + T[2];
+            let neighbor = null;
+            let foldType = '';
+
+            if (isSolid(adjX, adjY, adjZ)) {
+              if (isSolid(adjX + N_vec[0], adjY + N_vec[1], adjZ + N_vec[2])) {
+                const targetX = adjX + N_vec[0], targetY = adjY + N_vec[1], targetZ = adjZ + N_vec[2];
+                const targetD = dirIndex(-T[0], -T[1], -T[2]);
+                neighbor = facetMap.get(`${targetX},${targetY},${targetZ},${targetD}`);
+                foldType = 'concave';
+              } else {
+                neighbor = facetMap.get(`${adjX},${adjY},${adjZ},${facet.d}`);
+                foldType = 'flat';
+              }
+            } else {
+              const targetD = dirIndex(T[0], T[1], T[2]);
+              neighbor = facetMap.get(`${facet.x},${facet.y},${facet.z},${targetD}`);
+              foldType = 'convex';
+            }
+
+            if (!neighbor) neighbor = facet;
+
+            facet.neighbors.push(neighbor.id);
+            facet.foldTypes.push(foldType);
+
+            const edgeMid = [
+              facet.p[0] + T[0] * halfStep,
+              facet.p[1] + T[1] * halfStep,
+              facet.p[2] + T[2] * halfStep
+            ];
+            facet.edgeMids.push(edgeMid);
+
+            const nInfo = DIRS[neighbor.d];
+            let continueDir = [0, 0, 0];
+            if (foldType === 'flat') {
+              continueDir = T;
+            } else if (foldType === 'convex') {
+              continueDir = [-N_vec[0], -N_vec[1], -N_vec[2]];
+            } else {
+              continueDir = [N_vec[0], N_vec[1], N_vec[2]];
+            }
+
+            const dotU = continueDir[0]*nInfo.u[0] + continueDir[1]*nInfo.u[1] + continueDir[2]*nInfo.u[2];
+            const dotV = continueDir[0]*nInfo.v[0] + continueDir[1]*nInfo.v[1] + continueDir[2]*nInfo.v[2];
+            facet.nextDirs.push([Math.round(dotU), Math.round(dotV)]);
+          }
+        }
+
+        facetOccupant = new Int32Array(facetList.length).fill(-1);
 
         const gc = [0.32, 0.36, 0.42, 0.22];
         const ec = [0.46, 0.52, 0.60, 0.50];
@@ -2313,6 +2419,11 @@
 
       // Seed exactly targetCount tiles randomly on unoccupied grid cells
       function seedTiles(targetCount) {
+        if (!facetOccupant || facetOccupant.length !== facetList.length) {
+          facetOccupant = new Int32Array(facetList.length).fill(-1);
+        } else {
+          facetOccupant.fill(-1);
+        }
         for (let f = 0; f < 6; f++) {
           for (let u = 0; u < subdivisions; u++) {
             faceGrids[f][u].fill(-1);
@@ -2321,44 +2432,45 @@
         tiles.length = 0;
         tileById.clear();
         let placed = 0;
-        let totalValidSlots = 0;
-        for (let f = 0; f < 6; f++) totalValidSlots += validCellsByFace[f].length;
-        const countToPlace = Math.min(targetCount, Math.floor(totalValidSlots * 0.85));
+        const totalFacets = facetList.length;
+        const countToPlace = Math.min(targetCount, Math.floor(totalFacets * 0.85));
         let attempts = 0;
-        while (placed < countToPlace && attempts < totalValidSlots * 3) {
+        while (placed < countToPlace && attempts < totalFacets * 3) {
           attempts++;
-          const face = Math.floor(pseudoRandom() * 6);
-          const faceList = validCellsByFace[face];
-          if (!faceList || faceList.length === 0) continue;
-          const cell = faceList[Math.floor(pseudoRandom() * faceList.length)];
-          const u = cell.u;
-          const v = cell.v;
-          if (faceGrids[face][u][v] === -1) {
+          const fId = Math.floor(pseudoRandom() * totalFacets);
+          if (facetOccupant[fId] === -1) {
+            const F = facetList[fId];
             const colorIdx = Math.floor(pseudoRandom() * 4);
             const col = colors[colorIdx];
             const bSpeed = COLOR_BASE_SPEEDS[colorIdx];
             const wRange = COLOR_WAIT_RANGES[colorIdx];
             const id = tileIdCounter++;
-            faceGrids[face][u][v] = id;
+            facetOccupant[fId] = id;
+            if (faceGrids[F.d] && faceGrids[F.d][F.u]) faceGrids[F.d][F.u][F.v] = id;
             const newTile = {
               id: id,
-              face: face,
-              u: u,
-              v: v,
-              fromFace: face,
-              fromU: u,
-              fromV: v,
+              facet: fId,
+              fromFacet: fId,
+              targetFacet: fId,
+              face: F.d,
+              u: F.u,
+              v: F.v,
+              fromFace: F.d,
+              fromU: F.u,
+              fromV: F.v,
               prevFace: -1,
               prevU: -1,
               prevV: -1,
-              targetFace: face,
-              targetU: u,
-              targetV: v,
+              targetFace: F.d,
+              targetU: F.u,
+              targetV: F.v,
+              edge: 0,
+              prevFacet: -1,
               isMoving: false,
               progress: 0.0,
               moveSpeed: bSpeed + pseudoRandom() * 0.4,
               waitTimer: wRange[0] + pseudoRandom() * (wRange[1] - wRange[0]),
-              dir: pseudoRandom() > 0.5 ? [1, 0] : [0, 1],
+              dir: [1, 0],
               vx: 0, vy: 0, vz: 0,
               stuckTimer: 0.0,
               colorIndex: colorIdx,
@@ -2368,7 +2480,8 @@
               scale: 1.0,
               isDying: false,
               isSpawning: false,
-              recentHistory: []
+              recentHistory: [],
+              _px: F.p[0], _py: F.p[1], _pz: F.p[2]
             };
             tiles.push(newTile);
             tileById.set(id, newTile);
@@ -2747,24 +2860,8 @@
         topologyConfig.seed = Math.floor(Math.random() * 10000000);
         generateCubeTopology();
         rebuildGridAndFog();
-        for (let i = 0; i < tiles.length; i++) {
-          const t = tiles[i];
-          if (cellValid && cellValid[t.face] && cellValid[t.face][t.u][t.v] === 0) {
-            faceGrids[t.face][t.u][t.v] = -1;
-            const validList = validCellsByFace[t.face];
-            if (validList && validList.length > 0) {
-              const cell = validList[Math.floor(pseudoRandom() * validList.length)];
-              t.u = cell.u;
-              t.v = cell.v;
-              t.fromU = cell.u;
-              t.fromV = cell.v;
-              t.targetU = cell.u;
-              t.targetV = cell.v;
-              faceGrids[t.face][t.u][t.v] = t.id;
-            }
-          }
-          t.currentPos = getCellCenter(t.face, t.u, t.v);
-        }
+        const currentPop = tiles.length;
+        seedTiles(currentPop);
         if (typeof showToast === 'function') {
           showToast('🎲 Carved New Topology');
         }
@@ -3907,8 +4004,17 @@
             if (t.progress >= 1.0) {
               const overflow = Math.min(0.42, t.progress - 1.0);
               t.progress = 1.0;
+              // Release old facet
+              if (facetOccupant && t.fromFacet !== undefined) {
+                facetOccupant[t.fromFacet] = -1;
+                t.prevFacet = t.fromFacet;
+                t.facet = t.targetFacet;
+                facetOccupant[t.facet] = t.id;
+              }
               // Release old grid cell on origin face
-              faceGrids[t.fromFace][t.fromU][t.fromV] = -1;
+              if (faceGrids[t.fromFace] && faceGrids[t.fromFace][t.fromU]) {
+                faceGrids[t.fromFace][t.fromU][t.fromV] = -1;
+              }
 
               // Strictly record n-1 location
               t.prevFace = t.fromFace;
@@ -3932,10 +4038,12 @@
               t.trailNextFace = t.targetFace;
               t.trailNextU = t.targetU;
               t.trailNextV = t.targetV;
+              t.trailFacet = t.fromFacet;
               t.trailAlpha = 0.24;
 
               // Brief 2-cell memory to prevent 3-step triangle loops, while allowing fallback if boxed in
               t.recentHistory.push({
+                facet: t.fromFacet,
                 face: t.fromFace,
                 u: t.fromU,
                 v: t.fromV,
@@ -3949,11 +4057,14 @@
               t.face = t.targetFace;
               t.u = t.targetU;
               t.v = t.targetV;
-              faceGrids[t.face][t.u][t.v] = t.id;
-              const pNew = getCellCenter(t.face, t.u, t.v);
-              t._px = pNew[0];
-              t._py = pNew[1];
-              t._pz = pNew[2];
+              if (faceGrids[t.face] && faceGrids[t.face][t.u]) faceGrids[t.face][t.u][t.v] = t.id;
+              if (facetList && t.facet !== undefined && facetList[t.facet]) {
+                const curF = facetList[t.facet];
+                t._px = curF.p[0]; t._py = curF.p[1]; t._pz = curF.p[2];
+              } else {
+                const pNew = getCellCenter(t.face, t.u, t.v);
+                t._px = pNew[0]; t._py = pNew[1]; t._pz = pNew[2];
+              }
               t.isMoving = false;
               t.stuckTimer = 0.0;
 
@@ -3977,6 +4088,10 @@
             t.waitTimer -= dt;
             if (t.waitTimer <= 0) {
               pSelf[0] = t._px; pSelf[1] = t._py; pSelf[2] = t._pz;
+              const curF = facetList[t.facet !== undefined ? t.facet : 0];
+              const fNormal = curF ? curF.n : faceBases[t.face].n;
+              const fTu = curF ? curF.tu : faceBases[t.face].tu;
+              const fTv = curF ? curF.tv : faceBases[t.face].tv;
               const b = faceBases[t.face];
 
               _specFx[0] = 0; _specFx[1] = 0; _specFx[2] = 0; _specFx[3] = 0;
@@ -4138,20 +4253,20 @@
                 }
               }
 
-              // Project net 3D force onto current face's 2D tangent plane
-              const fDotN = totalFx * b.n[0] + totalFy * b.n[1] + totalFz * b.n[2];
-              const tanFx = totalFx - fDotN * b.n[0];
-              const tanFy = totalFy - fDotN * b.n[1];
-              const tanFz = totalFz - fDotN * b.n[2];
+              // Project net 3D force onto current facet's 2D tangent plane
+              const fDotN = totalFx * fNormal[0] + totalFy * fNormal[1] + totalFz * fNormal[2];
+              const tanFx = totalFx - fDotN * fNormal[0];
+              const tanFy = totalFy - fDotN * fNormal[1];
+              const tanFz = totalFz - fDotN * fNormal[2];
 
               // Smooth velocity / heading vector (Boids inertia: 72% previous heading + 28% new tangent force)
               const prevVx = t.vx || 0;
               const prevVy = t.vy || 0;
               const prevVz = t.vz || 0;
-              const prevDotN = prevVx * b.n[0] + prevVy * b.n[1] + prevVz * b.n[2];
-              const tanPrevVx = prevVx - prevDotN * b.n[0];
-              const tanPrevVy = prevVy - prevDotN * b.n[1];
-              const tanPrevVz = prevVz - prevDotN * b.n[2];
+              const prevDotN = prevVx * fNormal[0] + prevVy * fNormal[1] + prevVz * fNormal[2];
+              const tanPrevVx = prevVx - prevDotN * fNormal[0];
+              const tanPrevVy = prevVy - prevDotN * fNormal[1];
+              const tanPrevVz = prevVz - prevDotN * fNormal[2];
 
               t.vx = 0.72 * tanPrevVx + 0.28 * tanFx;
               t.vy = 0.72 * tanPrevVy + 0.28 * tanFy;
@@ -4162,104 +4277,69 @@
               const normVy = vMag > 1e-4 ? t.vy / vMag : 0;
               const normVz = vMag > 1e-4 ? t.vz / vMag : 0;
 
-              // 2. Evaluate all 4 candidate move directions
-              const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+              // 2. Evaluate all 4 candidate move directions along manifold edges
               const primaryMoves = [];
               const fallbackMoves = [];
 
-              for (let d = 0; d < 4; d++) {
-                const du = dirs[d][0];
-                const dv = dirs[d][1];
-                const nu = t.u + du;
-                const nv = t.v + dv;
-                let candTargetFace = t.face;
-                let candTargetU = nu;
-                let candTargetV = nv;
-                let candNextDir = [du, dv];
-                let isFree = false;
+              for (let e = 0; e < 4; e++) {
+                const targetFacetId = curF.neighbors[e];
+                if (facetOccupant[targetFacetId] !== -1) continue;
+                if (targetFacetId === t.prevFacet) continue; // STRICT: No back-and-forth ping-pong
 
-                if (nu >= 0 && nu < subdivisions && nv >= 0 && nv < subdivisions) {
-                  if ((!cellValid || cellValid[t.face][nu][nv] === 1) && faceGrids[t.face][nu][nv] === -1) {
-                    isFree = true;
-                  }
-                } else {
-                  // Face edge crossing to neighboring face
-                  const trans = getFaceTransition(t.face, t.u, t.v, du, dv);
-                  if (cellValid && cellValid[trans.targetFace] && cellValid[trans.targetFace][trans.targetU] && cellValid[trans.targetFace][trans.targetU][trans.targetV] === 1) {
-                    if (faceGrids[trans.targetFace] && faceGrids[trans.targetFace][trans.targetU] && faceGrids[trans.targetFace][trans.targetU][trans.targetV] === -1) {
-                      candTargetFace = trans.targetFace;
-                      candTargetU = trans.targetU;
-                      candTargetV = trans.targetV;
-                      candNextDir = trans.nextDir;
-                      isFree = true;
+                let isRecent = false;
+                if (t.recentHistory) {
+                  for (let h = 0; h < t.recentHistory.length; h++) {
+                    if (t.recentHistory[h].timer > 0 && t.recentHistory[h].facet === targetFacetId) {
+                      isRecent = true;
+                      break;
                     }
                   }
                 }
 
-                if (isFree) {
-                  // STRICT INVARIANT: Tiles CANNOT move back to immediate n-1 location (no back-and-forth ping-pong!)
-                  const isImmediateNMinus1 = (t.prevFace !== undefined && t.prevFace !== -1 &&
-                    candTargetFace === t.prevFace && candTargetU === t.prevU && candTargetV === t.prevV);
-                  if (isImmediateNMinus1) {
-                    continue; // Strictly forbidden
-                  }
+                const targetFacet = facetList[targetFacetId];
+                const foldType = curF.foldTypes[e];
+                const T = curF.tangents[e];
 
-                  let isRecent = false;
-                  if (t.recentHistory) {
-                    for (let h = 0; h < t.recentHistory.length; h++) {
-                      const rh = t.recentHistory[h];
-                      if (rh.timer > 0 && rh.face === candTargetFace && rh.u === candTargetU && rh.v === candTargetV) {
-                        isRecent = true;
-                        break;
-                      }
-                    }
-                  }
+                // Alignment with smoothed Boids velocity
+                const velAlign = (T[0] * normVx + T[1] * normVy + T[2] * normVz) * Math.min(18.0, vMag);
 
-                  // Direction of candidate step along the current face
-                  const moveDirX = du * b.tu[0] + dv * b.tv[0];
-                  const moveDirY = du * b.tu[1] + dv * b.tv[1];
-                  const moveDirZ = du * b.tu[2] + dv * b.tv[2];
+                // Direct alignment with instantaneous force vector
+                const instMag = Math.hypot(tanFx, tanFy, tanFz);
+                const instAlign = instMag > 1e-4
+                  ? ((T[0] * tanFx + T[1] * tanFy + T[2] * tanFz) / instMag) * Math.min(14.0, instMag)
+                  : 0.0;
 
-                  // Alignment with smoothed Boids/Particle-Life velocity vector
-                  const velAlign = (moveDirX * normVx + moveDirY * normVy + moveDirZ * normVz) * Math.min(18.0, vMag);
+                // Gentle camera-space elevation bonus
+                let vertStepBonus = 0.0;
+                if (verticalBuoyancyEnabled && Math.abs(desire) > 0.01) {
+                  const destY = rotateVecByQuat(targetFacet.p, quat)[1];
+                  const dy = Math.max(-1.0, Math.min(1.0, (destY - curY) / step));
+                  vertStepBonus = desire * dy * 3.2 * forcePowerMultiplier;
+                }
 
-                  // Direct alignment with instantaneous force vector for immediate responsiveness
-                  const instMag = Math.hypot(tanFx, tanFy, tanFz);
-                  const instAlign = instMag > 1e-4
-                    ? ((moveDirX * tanFx + moveDirY * tanFy + moveDirZ * tanFz) / instMag) * Math.min(14.0, instMag)
-                    : 0.0;
+                // Forward stride continuity along current heading
+                const dotU = T[0] * fTu[0] + T[1] * fTu[1] + T[2] * fTu[2];
+                const dotV = T[0] * fTv[0] + T[1] * fTv[1] + T[2] * fTv[2];
+                const strideBonus = (t.dir && Math.round(dotU) === t.dir[0] && Math.round(dotV) === t.dir[1]) ? 0.55 : 0.0;
 
-                  // Gentle camera-space elevation bonus (supports sky-top / ground-bot drift when climbing around corners)
-                  let vertStepBonus = 0.0;
-                  if (verticalBuoyancyEnabled && Math.abs(desire) > 0.01) {
-                    const pDest = getCellCenter(candTargetFace, candTargetU, candTargetV);
-                    const destY = rotateVecByQuat(pDest, quat)[1];
-                    const dy = Math.max(-1.0, Math.min(1.0, (destY - curY) / step));
-                    vertStepBonus = desire * dy * 3.2 * forcePowerMultiplier;
-                  }
+                // Seamless fold bonus: tiles happily fold into dents and over edges
+                const foldBonus = (foldType !== 'flat') ? 0.35 : 0.0;
 
-                  // Forward stride continuity (encourages smooth diagonal/curved trajectories rather than zig-zagging)
-                  const strideBonus = (du === t.dir[0] && dv === t.dir[1]) ? 0.55 : 0.0;
+                const score = velAlign * 0.60 + instAlign * 0.40 + vertStepBonus + strideBonus + foldBonus + (pseudoRandom() * 0.15);
 
-                  // Seamless edge-crossing bonus when heading points toward another face
-                  const edgeBonus = (candTargetFace !== t.face) ? 0.45 : 0.0;
+                const moveObj = {
+                  edge: e,
+                  targetFacetId: targetFacetId,
+                  targetFacet: targetFacet,
+                  foldType: foldType,
+                  nextDir: curF.nextDirs[e],
+                  score: score
+                };
 
-                  const score = velAlign * 0.60 + instAlign * 0.40 + vertStepBonus + strideBonus + edgeBonus + (pseudoRandom() * 0.15);
-
-                  const moveObj = {
-                    dir: dirs[d],
-                    targetFace: candTargetFace,
-                    targetU: candTargetU,
-                    targetV: candTargetV,
-                    nextDir: candNextDir,
-                    score: score
-                  };
-
-                  if (!isRecent) {
-                    primaryMoves.push(moveObj);
-                  } else {
-                    fallbackMoves.push(moveObj);
-                  }
+                if (!isRecent) {
+                  primaryMoves.push(moveObj);
+                } else {
+                  fallbackMoves.push(moveObj);
                 }
               }
 
@@ -4267,9 +4347,6 @@
 
               if (candidateMoves.length > 0) {
                 candidateMoves.sort((a, b) => b.score - a.score);
-
-                // Probabilistic steering between #1 and #2 when moving diagonally to a target
-                // Prevents unnatural 90-degree L-shaped stair-stepping and produces organic curved pack trajectories!
                 let chosen = candidateMoves[0];
                 if (candidateMoves.length >= 2 && candidateMoves[0].score > 0.5 && candidateMoves[1].score > 0.25) {
                   const diff = candidateMoves[0].score - candidateMoves[1].score;
@@ -4282,49 +4359,45 @@
                   }
                 }
 
-                // If the tile crosses an edge onto a new face, parallel-transport its velocity vector around the 90° fold
-                if (chosen.targetFace !== t.face) {
-                  const n1 = faceBases[t.face].n;
-                  const n2 = faceBases[chosen.targetFace].n;
+                // Parallel transport velocity vector around 90° corner fold
+                if (chosen.foldType !== 'flat') {
+                  const n1 = curF.n;
+                  const n2 = chosen.targetFacet.n;
                   const dotVn2 = t.vx * n2[0] + t.vy * n2[1] + t.vz * n2[2];
                   t.vx = t.vx - dotVn2 * n2[0] - dotVn2 * n1[0];
                   t.vy = t.vy - dotVn2 * n2[1] - dotVn2 * n1[1];
                   t.vz = t.vz - dotVn2 * n2[2] - dotVn2 * n1[2];
                 }
 
-                faceGrids[chosen.targetFace][chosen.targetU][chosen.targetV] = t.id;
+                facetOccupant[chosen.targetFacetId] = t.id;
+                if (faceGrids[chosen.targetFacet.d] && faceGrids[chosen.targetFacet.d][chosen.targetFacet.u]) {
+                  faceGrids[chosen.targetFacet.d][chosen.targetFacet.u][chosen.targetFacet.v] = t.id;
+                }
+
                 t.isMoving = true;
-                t.fromFace = t.face;
-                t.fromU = t.u;
-                t.fromV = t.v;
-                t.targetFace = chosen.targetFace;
-                t.targetU = chosen.targetU;
-                t.targetV = chosen.targetV;
+                t.fromFacet = t.facet;
+                t.targetFacet = chosen.targetFacetId;
+                t.edge = chosen.edge;
+                t.dir = chosen.nextDir;
+
+                t.fromFace = curF.d;
+                t.fromU = curF.u;
+                t.fromV = curF.v;
+                t.targetFace = chosen.targetFacet.d;
+                t.targetU = chosen.targetFacet.u;
+                t.targetV = chosen.targetFacet.v;
+
                 t.wasContinuous = (t._overflow > 0);
                 t.progress = 0.0;
                 t._overflow = 0.0;
-                t.dir = chosen.nextDir;
 
-                const isSameFace = (chosen.targetFace === t.face);
-                const isSameDir = t.dir && (chosen.nextDir[0] === t.dir[0] && chosen.nextDir[1] === t.dir[1]);
-
-                if (t.wasContinuous && isSameFace && isSameDir) {
+                const isSameFacetDir = (chosen.foldType === 'flat');
+                if (t.wasContinuous && isSameFacetDir) {
                   t.straightRun = (t.straightRun || 1) + 1;
                 } else {
                   t.straightRun = 1;
                 }
 
-                // Check if next cell ahead in the same direction is open or blocked/edge
-                const nextAheadU = chosen.targetU + chosen.nextDir[0];
-                const nextAheadV = chosen.targetV + chosen.nextDir[1];
-                const canContinueAhead = isSameFace && 
-                                         (nextAheadU >= 0 && nextAheadU < subdivisions && 
-                                          nextAheadV >= 0 && nextAheadV < subdivisions && 
-                                          (!cellValid || cellValid[chosen.targetFace][nextAheadU][nextAheadV] === 1) &&
-                                          faceGrids[chosen.targetFace][nextAheadU][nextAheadV] === -1);
-
-                // Stop with Ease-Out at 5th tile or when reaching end of straight path
-                t.isStraightStop = (t.straightRun >= 5) || !canContinueAhead;
                 t.lastDrive = Math.max(0, chosen.score);
                 const urgency = Math.min(t.lastDrive * 0.06, 1.1);
                 const speedMultiplier = 1.0 + (forcePowerMultiplier - 1.0) * 0.22;
@@ -4353,30 +4426,24 @@
       let tvX = 0, tvY = 0, tvZ = 0;
       let nX = 0, nY = 0, nZ = 0;
 
-      function writeGhostInstance(data, ptr, face, u, v, col, alpha, scale, stretchDir) {
-        const b = faceBases[face];
-        const uCoord = -HALF + (u + 0.5) * step;
-        const vCoord = -HALF + (v + 0.5) * step;
-        const depth = (cellDepths && cellDepths[face] && cellDepths[face][u]) ? cellDepths[face][u][v] : 0;
-        const h = HALF - depth * step;
-        const cx = uCoord * b.tu[0] + vCoord * b.tv[0] + h * b.n[0];
-        const cy = uCoord * b.tu[1] + vCoord * b.tv[1] + h * b.n[1];
-        const cz = uCoord * b.tu[2] + vCoord * b.tv[2] + h * b.n[2];
+      function writeGhostInstance(data, ptr, facetId, col, alpha, scale, stretchDir) {
+        if (facetId === undefined || facetId < 0 || facetId >= facetList.length) return ptr;
+        const F = facetList[facetId];
         const su = stretchDir ? (1.0 + Math.abs(stretchDir[0]) * 0.10) : 1.0;
         const sv = stretchDir ? (1.0 + Math.abs(stretchDir[1]) * 0.10) : 1.0;
 
-        data[ptr++] = cx;
-        data[ptr++] = cy;
-        data[ptr++] = cz;
-        data[ptr++] = b.tu[0] * su;
-        data[ptr++] = b.tu[1] * su;
-        data[ptr++] = b.tu[2] * su;
-        data[ptr++] = b.tv[0] * sv;
-        data[ptr++] = b.tv[1] * sv;
-        data[ptr++] = b.tv[2] * sv;
-        data[ptr++] = b.n[0];
-        data[ptr++] = b.n[1];
-        data[ptr++] = b.n[2];
+        data[ptr++] = F.p[0];
+        data[ptr++] = F.p[1];
+        data[ptr++] = F.p[2];
+        data[ptr++] = F.tu[0] * su;
+        data[ptr++] = F.tu[1] * su;
+        data[ptr++] = F.tu[2] * su;
+        data[ptr++] = F.tv[0] * sv;
+        data[ptr++] = F.tv[1] * sv;
+        data[ptr++] = F.tv[2] * sv;
+        data[ptr++] = F.n[0];
+        data[ptr++] = F.n[1];
+        data[ptr++] = F.n[2];
         data[ptr++] = col[0];
         data[ptr++] = col[1];
         data[ptr++] = col[2];
@@ -4410,165 +4477,95 @@
           }
         }
 
-        // 2. Spatial convoy detection (multiple adjacent tiles moving simultaneously):
-        const du = t.dir ? t.dir[0] : 0;
-        const dv = t.dir ? t.dir[1] : 0;
-        let hasLeaderAhead = false;
-        let hasFollowerBehind = false;
-
-        if ((du !== 0 || dv !== 0) && faceGrids[t.face]) {
-          const fGrid = faceGrids[t.face];
-          const aheadU = t.targetU + du;
-          const aheadV = t.targetV + dv;
-          if (aheadU >= 0 && aheadU < subdivisions && aheadV >= 0 && aheadV < subdivisions) {
-            const aheadId = fGrid[aheadU][aheadV];
-            if (aheadId !== -1 && aheadId !== t.id) {
-              const aheadTile = tileById.get(aheadId);
-              if (aheadTile && aheadTile.isMoving && aheadTile.dir && aheadTile.dir[0] === du && aheadTile.dir[1] === dv) {
-                hasLeaderAhead = true;
-              }
-            }
-          }
-
-          const behindU = t.fromU - du;
-          const behindV = t.fromV - dv;
-          if (behindU >= 0 && behindU < subdivisions && behindV >= 0 && behindV < subdivisions) {
-            const behindId = fGrid[behindU][behindV];
-            if (behindId !== -1 && behindId !== t.id) {
-              const behindTile = tileById.get(behindId);
-              if (behindTile && behindTile.isMoving && behindTile.dir && behindTile.dir[0] === du && behindTile.dir[1] === dv) {
-                hasFollowerBehind = true;
-              }
-            }
-          }
-        }
-
-        t.hasLeaderAhead = hasLeaderAhead;
-        t.hasFollowerBehind = hasFollowerBehind;
-
-        // 1st tile starting the movement: Starts with Ease-In from rest
-        if (!hasFollowerBehind && hasLeaderAhead) {
-          return p * p * (2.0 - p);
-        }
-        // Interior tiles in line (2, 3, 4): Linear cruise velocity (no slowdown)
-        if (hasLeaderAhead && hasFollowerBehind) {
-          return p;
-        }
-        // 5th/final tile stopping the movement: Stops with Ease-Out into destination
-        if (hasLeaderAhead && !hasFollowerBehind) {
-          return -p * p * p + p * p + p;
-        }
-
         // Standalone isolated move: Harmonic S-curve (both Ease-In and Ease-Out)
         return 0.5 - 0.5 * Math.cos(p * Math.PI);
       }
 
+      function rodrigues(v, axis, angle) {
+        const cosT = Math.cos(angle);
+        const sinT = Math.sin(angle);
+        const cx = axis[1] * v[2] - axis[2] * v[1];
+        const cy = axis[2] * v[0] - axis[0] * v[2];
+        const cz = axis[0] * v[1] - axis[1] * v[0];
+        const dot = axis[0] * v[0] + axis[1] * v[1] + axis[2] * v[2];
+        const factor = dot * (1.0 - cosT);
+        return [
+          v[0] * cosT + cx * sinT + axis[0] * factor,
+          v[1] * cosT + cy * sinT + axis[1] * factor,
+          v[2] * cosT + cz * sinT + axis[2] * factor
+        ];
+      }
+
       function writeTileAtProgress(data, ptr, t, p, alpha, scaleMult, isMotionBlur = false) {
-        if (t.isMoving && t.targetFace !== t.fromFace) {
-          const ease = getTileEase(t, p);
-          const theta = ease * Math.PI * 0.5;
-
-          const b1 = faceBases[t.fromFace];
-          const b2 = faceBases[t.targetFace];
-          const n1 = b1.n;
-          const n2 = b2.n;
-
-          // Edge direction E = n1 x n2
-          const Ex = n1[1] * n2[2] - n1[2] * n2[1];
-          const Ey = n1[2] * n2[0] - n1[0] * n2[2];
-          const Ez = n1[0] * n2[1] - n1[1] * n2[0];
-          const Elen = Math.hypot(Ex, Ey, Ez) || 1;
-          const eX = Ex / Elen, eY = Ey / Elen, eZ = Ez / Elen;
-
-          // 1. Normal rotates smoothly by 90 degrees around E
-          const cosT = Math.cos(theta);
-          const sinT = Math.sin(theta);
-          nX = cosT * n1[0] + sinT * n2[0];
-          nY = cosT * n1[1] + sinT * n2[1];
-          nZ = cosT * n1[2] + sinT * n2[2];
-
-          // 2. Rigid orientation of tile: rotate Tu and Tv around E with N
-          const n2RotX = cosT * n2[0] - sinT * n1[0];
-          const n2RotY = cosT * n2[1] - sinT * n1[1];
-          const n2RotZ = cosT * n2[2] - sinT * n1[2];
-
-          const stretch = isMotionBlur ? 1.12 : 1.0;
-          const tu1 = b1.tu;
-          const dotTu1E = tu1[0] * eX + tu1[1] * eY + tu1[2] * eZ;
-          const dotTu1N2 = (tu1[0] * n2[0] + tu1[1] * n2[1] + tu1[2] * n2[2]) * stretch;
-          tuX = dotTu1E * eX + dotTu1N2 * n2RotX;
-          tuY = dotTu1E * eY + dotTu1N2 * n2RotY;
-          tuZ = dotTu1E * eZ + dotTu1N2 * n2RotZ;
-
-          const tv1 = b1.tv;
-          const dotTv1E = tv1[0] * eX + tv1[1] * eY + tv1[2] * eZ;
-          const dotTv1N2 = (tv1[0] * n2[0] + tv1[1] * n2[1] + tv1[2] * n2[2]) * stretch;
-          tvX = dotTv1E * eX + dotTv1N2 * n2RotX;
-          tvY = dotTv1E * eY + dotTv1N2 * n2RotY;
-          tvZ = dotTv1E * eZ + dotTv1N2 * n2RotZ;
-
-          const c1 = getCellCenter(t.fromFace, t.fromU, t.fromV);
-          const c2 = getCellCenter(t.targetFace, t.targetU, t.targetV);
-
-          // Edge midpoint connecting c1 and c2 across face boundary
-          const midX = (c1[0] + c2[0]) * 0.5 + 0.35 * step * (n1[0] + n2[0]) * 0.7071;
-          const midY = (c1[1] + c2[1]) * 0.5 + 0.35 * step * (n1[1] + n2[1]) * 0.7071;
-          const midZ = (c1[2] + c2[2]) * 0.5 + 0.35 * step * (n1[2] + n2[2]) * 0.7071;
-
-          if (ease <= 0.5) {
-            const t1 = ease * 2.0;
-            cX = (1.0 - t1) * c1[0] + t1 * midX;
-            cY = (1.0 - t1) * c1[1] + t1 * midY;
-            cZ = (1.0 - t1) * c1[2] + t1 * midZ;
-          } else {
-            const t2 = (ease - 0.5) * 2.0;
-            cX = (1.0 - t2) * midX + t2 * c2[0];
-            cY = (1.0 - t2) * midY + t2 * c2[1];
-            cZ = (1.0 - t2) * midZ + t2 * c2[2];
-          }
-
-          const cornerLift = Math.sin(ease * Math.PI) * 0.035;
-          cX += nX * cornerLift;
-          cY += nY * cornerLift;
-          cZ += nZ * cornerLift;
+        if (!t.isMoving) {
+          const F = (t.facet !== undefined && facetList[t.facet]) ? facetList[t.facet] : facetList[0];
+          cX = F.p[0]; cY = F.p[1]; cZ = F.p[2];
+          nX = F.n[0]; nY = F.n[1]; nZ = F.n[2];
+          tuX = F.tu[0]; tuY = F.tu[1]; tuZ = F.tu[2];
+          tvX = F.tv[0]; tvY = F.tv[1]; tvZ = F.tv[2];
         } else {
-          // Smooth, continuous glide within same face
-          const b = faceBases[t.face];
-          nX = b.n[0]; nY = b.n[1]; nZ = b.n[2];
-          if (t.isMoving) {
-            const ease = getTileEase(t, p);
-            const c1 = getCellCenter(t.face, t.fromU, t.fromV);
-            const c2 = getCellCenter(t.face, t.targetU, t.targetV);
-            cX = (1.0 - ease) * c1[0] + ease * c2[0];
-            cY = (1.0 - ease) * c1[1] + ease * c2[1];
-            cZ = (1.0 - ease) * c1[2] + ease * c2[2];
+          const f1 = facetList[t.fromFacet !== undefined ? t.fromFacet : t.facet];
+          const f2 = facetList[t.targetFacet !== undefined ? t.targetFacet : t.facet];
+          const foldType = (f1 && f1.foldTypes && t.edge !== undefined) ? f1.foldTypes[t.edge] : 'flat';
+          const ease = getTileEase(t, p);
 
-            const d1 = (cellDepths && cellDepths[t.face] && cellDepths[t.face][t.fromU]) ? cellDepths[t.face][t.fromU][t.fromV] : 0;
-            const d2 = (cellDepths && cellDepths[t.face] && cellDepths[t.face][t.targetU]) ? cellDepths[t.face][t.targetU][t.targetV] : 0;
-            // No outward hop into thin air - tiles stay strictly flush to the physical surface
-            if (d1 !== d2) {
-              // Smooth flush step transition without jumping outward
-            }
+          if (foldType === 'flat' || !f1 || !f2 || !f1.edgeMids || t.edge === undefined) {
+            // Smooth coplanar gliding across the same face or coplanar dent surface
+            cX = (1.0 - ease) * f1.p[0] + ease * f2.p[0];
+            cY = (1.0 - ease) * f1.p[1] + ease * f2.p[1];
+            cZ = (1.0 - ease) * f1.p[2] + ease * f2.p[2];
+            nX = f1.n[0]; nY = f1.n[1]; nZ = f1.n[2];
 
             if (isMotionBlur) {
-              // Subtle longitudinal shutter overlap strictly along movement axis
-              const moveU = Math.abs(t.targetU - t.fromU);
-              const moveV = Math.abs(t.targetV - t.fromV);
-              const su = 1.0 + moveU * 0.14;
-              const sv = 1.0 + moveV * 0.14;
-              tuX = b.tu[0] * su; tuY = b.tu[1] * su; tuZ = b.tu[2] * su;
-              tvX = b.tv[0] * sv; tvY = b.tv[1] * sv; tvZ = b.tv[2] * sv;
+              const su = 1.0 + Math.abs(t.dir ? t.dir[0] : 0) * 0.14;
+              const sv = 1.0 + Math.abs(t.dir ? t.dir[1] : 0) * 0.14;
+              tuX = f1.tu[0] * su; tuY = f1.tu[1] * su; tuZ = f1.tu[2] * su;
+              tvX = f1.tv[0] * sv; tvY = f1.tv[1] * sv; tvZ = f1.tv[2] * sv;
             } else {
-              tuX = b.tu[0]; tuY = b.tu[1]; tuZ = b.tu[2];
-              tvX = b.tv[0]; tvY = b.tv[1]; tvZ = b.tv[2];
+              tuX = f1.tu[0]; tuY = f1.tu[1]; tuZ = f1.tu[2];
+              tvX = f1.tv[0]; tvY = f1.tv[1]; tvZ = f1.tv[2];
             }
           } else {
-            tuX = b.tu[0]; tuY = b.tu[1]; tuZ = b.tu[2];
-            tvX = b.tv[0]; tvY = b.tv[1]; tvZ = b.tv[2];
-            const pos = getCellCenter(t.face, t.u, t.v);
-            cX = pos[0]; cY = pos[1]; cZ = pos[2];
+            // 90° Fold (Convex step corner or Concave inner crease)
+            const theta = ease * Math.PI * 0.5;
+            const n1 = f1.n;
+            const n2 = f2.n;
+            const Ax = n1[1] * n2[2] - n1[2] * n2[1];
+            const Ay = n1[2] * n2[0] - n1[0] * n2[2];
+            const Az = n1[0] * n2[1] - n1[1] * n2[0];
+            const Alen = Math.hypot(Ax, Ay, Az) || 1;
+            const axis = [Ax / Alen, Ay / Alen, Az / Alen];
+
+            const nRot = rodrigues(n1, axis, theta);
+            const tuRot = rodrigues(f1.tu, axis, theta);
+            const tvRot = rodrigues(f1.tv, axis, theta);
+
+            nX = nRot[0]; nY = nRot[1]; nZ = nRot[2];
+            tuX = tuRot[0]; tuY = tuRot[1]; tuZ = tuRot[2];
+            tvX = tvRot[0]; tvY = tvRot[1]; tvZ = tvRot[2];
+
+            const edgeMid = f1.edgeMids[t.edge];
+            if (ease <= 0.5) {
+              const t1 = ease * 2.0;
+              cX = (1.0 - t1) * f1.p[0] + t1 * edgeMid[0];
+              cY = (1.0 - t1) * f1.p[1] + t1 * edgeMid[1];
+              cZ = (1.0 - t1) * f1.p[2] + t1 * edgeMid[2];
+            } else {
+              const t2 = (ease - 0.5) * 2.0;
+              cX = (1.0 - t2) * edgeMid[0] + t2 * f2.p[0];
+              cY = (1.0 - t2) * edgeMid[1] + t2 * f2.p[1];
+              cZ = (1.0 - t2) * edgeMid[2] + t2 * f2.p[2];
+            }
+
+            if (foldType === 'convex') {
+              const cornerLift = Math.sin(ease * Math.PI) * (0.12 * step);
+              cX += nX * cornerLift;
+              cY += nY * cornerLift;
+              cZ += nZ * cornerLift;
+            }
           }
         }
+
         if (!isMotionBlur && alpha >= 0.99) {
           if (!t.currentPos) t.currentPos = [cX, cY, cZ];
           else { t.currentPos[0] = cX; t.currentPos[1] = cY; t.currentPos[2] = cZ; }
@@ -4619,31 +4616,38 @@
         const numTiles = tiles.length;
 
         // Pass A: High-performance surface wake & single-slice optical shutter blur (rendered with depthMask = false)
-        // Streamlined to eliminate mobile fill-rate overdraw while preserving silky motion blur
         for (let i = 0; i < numTiles; i++) {
           const t = tiles[i];
           if (!t || t.isDying) continue;
 
           // 1. Sleek trailing footprint (fading n-1 cell)
-          if (t.trailAlpha > 0.02 && t.trailFace !== undefined && t.trailFace >= 0) {
+          if (t.trailAlpha > 0.02 && t.trailFacet !== undefined && t.trailFacet >= 0 && facetList[t.trailFacet]) {
             const sc1 = 0.45 + Math.min(1.0, t.trailAlpha / 0.25) * 0.35;
-            if (faceNz[t.trailFace] > 0.0) {
-              frontTrailPtr = writeGhostInstance(frontTrailData, frontTrailPtr, t.trailFace, t.trailU, t.trailV, t.color, t.trailAlpha * 0.75, sc1, t.dir);
+            const tF = facetList[t.trailFacet];
+            const nz = vm[2] * tF.n[0] + vm[6] * tF.n[1] + vm[10] * tF.n[2];
+            if (nz > 0.0) {
+              frontTrailPtr = writeGhostInstance(frontTrailData, frontTrailPtr, t.trailFacet, t.color, t.trailAlpha * 0.75, sc1, t.dir);
               frontTrailCount++;
             } else {
-              backTrailPtr = writeGhostInstance(backTrailData, backTrailPtr, t.trailFace, t.trailU, t.trailV, t.color, t.trailAlpha * 0.75, sc1, t.dir);
+              backTrailPtr = writeGhostInstance(backTrailData, backTrailPtr, t.trailFacet, t.color, t.trailAlpha * 0.75, sc1, t.dir);
               backTrailCount++;
             }
           }
 
-          // 2. High-performance shutter motion blur: 1 optical elongated slice directly behind moving tile (replaces 4 overlapping stamps)
+          // 2. High-performance shutter motion blur: 1 optical elongated slice directly behind moving tile
           if (t.isMoving && t.progress > 0.04) {
             const speedNorm = Math.min(1.35, Math.max(0.45, (t.moveSpeed || 1.5) * 0.45));
-            let nz = faceNz[t.face];
-            if (t.targetFace !== t.fromFace) {
-              const easeProgress = getTileEase(t, t.progress);
-              const theta = easeProgress * Math.PI * 0.5;
-              nz = Math.cos(theta) * faceNz[t.fromFace] + Math.sin(theta) * faceNz[t.targetFace];
+            const f1 = facetList[t.fromFacet !== undefined ? t.fromFacet : t.facet];
+            let nz = f1 ? (vm[2] * f1.n[0] + vm[6] * f1.n[1] + vm[10] * f1.n[2]) : 1.0;
+            if (t.targetFacet !== t.fromFacet) {
+              const f2 = facetList[t.targetFacet !== undefined ? t.targetFacet : t.facet];
+              if (f1 && f2) {
+                const easeProgress = getTileEase(t, t.progress);
+                const theta = easeProgress * Math.PI * 0.5;
+                const nz1 = vm[2] * f1.n[0] + vm[6] * f1.n[1] + vm[10] * f1.n[2];
+                const nz2 = vm[2] * f2.n[0] + vm[6] * f2.n[1] + vm[10] * f2.n[2];
+                nz = Math.cos(theta) * nz1 + Math.sin(theta) * nz2;
+              }
             }
             const pSample = Math.max(0.0, t.progress - 0.12 * speedNorm);
             const sampleAlpha = 0.22 * Math.min(1.0, speedNorm);
@@ -4662,11 +4666,17 @@
         for (let i = 0; i < numTiles; i++) {
           const t = tiles[i];
           if (!t) continue;
-          let nz = faceNz[t.face];
-          if (t.isMoving && t.targetFace !== t.fromFace) {
-            const ease = getTileEase(t, t.progress);
-            const theta = ease * Math.PI * 0.5;
-            nz = Math.cos(theta) * faceNz[t.fromFace] + Math.sin(theta) * faceNz[t.targetFace];
+          const f1 = facetList[t.fromFacet !== undefined ? t.fromFacet : t.facet];
+          let nz = f1 ? (vm[2] * f1.n[0] + vm[6] * f1.n[1] + vm[10] * f1.n[2]) : 1.0;
+          if (t.isMoving && t.targetFacet !== t.fromFacet) {
+            const f2 = facetList[t.targetFacet !== undefined ? t.targetFacet : t.facet];
+            if (f1 && f2) {
+              const ease = getTileEase(t, t.progress);
+              const theta = ease * Math.PI * 0.5;
+              const nz1 = vm[2] * f1.n[0] + vm[6] * f1.n[1] + vm[10] * f1.n[2];
+              const nz2 = vm[2] * f2.n[0] + vm[6] * f2.n[1] + vm[10] * f2.n[2];
+              nz = Math.cos(theta) * nz1 + Math.sin(theta) * nz2;
+            }
           }
           if (nz > 0.0) {
             frontPtr = writeTileAtProgress(frontInstanceData, frontPtr, t, t.progress, 1.0, 1.0, false);
