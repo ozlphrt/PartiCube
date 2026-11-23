@@ -2977,47 +2977,49 @@
 
       function adjustPopulationCoverage(newPct) {
         populationCoveragePct = newPct;
-        const totalCapacity = 6 * subdivisions * subdivisions;
-        const targetPop = Math.round((populationCoveragePct / 100) * totalCapacity);
+        const totalCapacity = facetList.length;
+        const targetPop = Math.min(totalCapacity, Math.round((populationCoveragePct / 100) * totalCapacity));
         const curPop = tiles.filter(t => !t.isDying).length;
 
         if (targetPop > curPop) {
           let needed = targetPop - curPop;
           let attempts = 0;
-          while (needed > 0 && attempts < totalCapacity) {
+          while (needed > 0 && attempts < totalCapacity * 2) {
             attempts++;
-            const face = Math.floor(pseudoRandom() * 6);
-            const faceList = validCellsByFace[face];
-            if (!faceList || faceList.length === 0) continue;
-            const cell = faceList[Math.floor(pseudoRandom() * faceList.length)];
-            const u = cell.u;
-            const v = cell.v;
-            if (faceGrids[face][u][v] === -1) {
+            const fId = Math.floor(pseudoRandom() * totalCapacity);
+            if (facetOccupant[fId] === -1) {
+              const F = facetList[fId];
               const colorIdx = Math.floor(pseudoRandom() * 4);
               const col = colors[colorIdx];
               const bSpeed = COLOR_BASE_SPEEDS[colorIdx];
               const wRange = COLOR_WAIT_RANGES[colorIdx];
               const id = tileIdCounter++;
-              faceGrids[face][u][v] = id;
+              facetOccupant[fId] = id;
+              if (faceGrids[F.d] && faceGrids[F.d][F.u]) faceGrids[F.d][F.u][F.v] = id;
               const newTile = {
                 id: id,
-                face: face,
-                u: u,
-                v: v,
-                fromFace: face,
-                fromU: u,
-                fromV: v,
+                facet: fId,
+                fromFacet: fId,
+                targetFacet: fId,
+                face: F.d,
+                u: F.u,
+                v: F.v,
+                fromFace: F.d,
+                fromU: F.u,
+                fromV: F.v,
                 prevFace: -1,
                 prevU: -1,
                 prevV: -1,
-                targetFace: face,
-                targetU: u,
-                targetV: v,
+                targetFace: F.d,
+                targetU: F.u,
+                targetV: F.v,
+                edge: 0,
+                prevFacet: -1,
                 isMoving: false,
                 progress: 0.0,
                 moveSpeed: bSpeed + pseudoRandom() * 0.4,
                 waitTimer: wRange[0] + pseudoRandom() * (wRange[1] - wRange[0]),
-                dir: pseudoRandom() > 0.5 ? [1, 0] : [0, 1],
+                dir: [1, 0],
                 vx: 0, vy: 0, vz: 0,
                 stuckTimer: 0.0,
                 colorIndex: colorIdx,
@@ -3030,7 +3032,8 @@
                 trailAlpha: 0.0,
                 trail2Alpha: 0.0,
                 trail3Alpha: 0.0,
-                recentHistory: []
+                recentHistory: [],
+                _px: F.p[0], _py: F.p[1], _pz: F.p[2]
               };
               tileById.set(id, newTile);
               tiles.push(newTile);
@@ -3578,7 +3581,8 @@
           if (t.isDying) {
             t.scale -= dt * 2.4;
             if (t.scale <= 0.0) {
-              faceGrids[t.face][t.u][t.v] = -1;
+              if (facetOccupant && t.facet !== undefined) facetOccupant[t.facet] = -1;
+              if (faceGrids[t.face] && faceGrids[t.face][t.u]) faceGrids[t.face][t.u][t.v] = -1;
               tileById.delete(t.id);
               tiles.splice(i, 1);
               i--;
@@ -3599,23 +3603,22 @@
           t.age += dt;
           if (t.stuckTimer === undefined) t.stuckTimer = 0.0;
 
-          // Check 4-connected neighbors on face (only replace stuck or completely suffocated tiles)
+          // Check 4-connected neighbors on manifold (only replace stuck or completely suffocated tiles)
           let sameCount = 0;
           let totalNeighbors = 0;
           const freeNeighbors = [];
-          const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+          const curF = (t.facet !== undefined && facetList[t.facet]) ? facetList[t.facet] : null;
 
-          for (let d = 0; d < 4; d++) {
-            const nu = t.u + dirs[d][0];
-            const nv = t.v + dirs[d][1];
-            if (nu >= 0 && nu < subdivisions && nv >= 0 && nv < subdivisions) {
-              const nid = faceGrids[t.face][nu][nv];
-              if (nid !== -1) {
+          if (curF) {
+            for (let e = 0; e < 4; e++) {
+              const nid = curF.neighbors[e];
+              const occId = facetOccupant[nid];
+              if (occId !== -1) {
                 totalNeighbors++;
-                const nTile = tileById.get(nid);
+                const nTile = tileById.get(occId);
                 if (nTile && nTile.colorIndex === t.colorIndex) sameCount++;
               } else {
-                freeNeighbors.push({ face: t.face, u: nu, v: nv });
+                freeNeighbors.push(nid);
               }
             }
           }
@@ -3637,29 +3640,36 @@
           if (!t.isMoving && t.energy > 0.9 && sameCount >= 1 && freeNeighbors.length > 0 && speciesCounts[t.colorIndex] < maxPerSpecies) {
             const deficitBoost = speciesCounts[t.colorIndex] < targetPerSpecies ? 2.5 : 0.35;
             if (pseudoRandom() < 0.18 * dt * deficitBoost) {
-              const pick = freeNeighbors[Math.floor(pseudoRandom() * freeNeighbors.length)];
+              const pickFacetId = freeNeighbors[Math.floor(pseudoRandom() * freeNeighbors.length)];
+              const pickF = facetList[pickFacetId];
               t.energy -= 0.25;
               const newId = tileIdCounter++;
-              faceGrids[pick.face][pick.u][pick.v] = newId;
+              facetOccupant[pickFacetId] = newId;
+              if (faceGrids[pickF.d] && faceGrids[pickF.d][pickF.u]) faceGrids[pickF.d][pickF.u][pickF.v] = newId;
               const newTile = {
                 id: newId,
-                face: pick.face,
-                u: pick.u,
-                v: pick.v,
-                fromFace: pick.face,
-                fromU: pick.u,
-                fromV: pick.v,
+                facet: pickFacetId,
+                fromFacet: pickFacetId,
+                targetFacet: pickFacetId,
+                face: pickF.d,
+                u: pickF.u,
+                v: pickF.v,
+                fromFace: pickF.d,
+                fromU: pickF.u,
+                fromV: pickF.v,
                 prevFace: -1,
                 prevU: -1,
                 prevV: -1,
-                targetFace: pick.face,
-                targetU: pick.u,
-                targetV: pick.v,
+                targetFace: pickF.d,
+                targetU: pickF.u,
+                targetV: pickF.v,
+                edge: 0,
+                prevFacet: -1,
                 isMoving: false,
                 progress: 0.0,
                 moveSpeed: COLOR_BASE_SPEEDS[t.colorIndex] + pseudoRandom() * 0.4,
                 waitTimer: COLOR_WAIT_RANGES[t.colorIndex][0] + pseudoRandom() * (COLOR_WAIT_RANGES[t.colorIndex][1] - COLOR_WAIT_RANGES[t.colorIndex][0]),
-                dir: pseudoRandom() > 0.5 ? [1, 0] : [0, 1],
+                dir: [1, 0],
                 vx: t.vx || 0,
                 vy: t.vy || 0,
                 vz: t.vz || 0,
@@ -3671,7 +3681,11 @@
                 scale: 0.1,
                 isDying: false,
                 isSpawning: true,
-                recentHistory: []
+                trailAlpha: 0.0,
+                trail2Alpha: 0.0,
+                trail3Alpha: 0.0,
+                recentHistory: [],
+                _px: pickF.p[0], _py: pickF.p[1], _pz: pickF.p[2]
               };
               tiles.push(newTile);
               tileById.set(newId, newTile);
@@ -3686,41 +3700,37 @@
           genesisTimer = 0.0;
           for (let c = 0; c < 4; c++) {
             if (speciesCounts[c] < minPerSpecies) {
-              const zIdx = colorVerticalIdx[c];
-              const lvl = ZONE_LEVELS[zIdx];
               for (let attempt = 0; attempt < 25; attempt++) {
-                let rf = Math.floor(pseudoRandom() * 6);
-                if (verticalBuoyancyEnabled && lvl) {
-                  if (lvl.type === 'top') rf = skyTopFace;
-                  else if (lvl.type === 'bot') rf = groundBotFace;
-                }
-                const faceList = validCellsByFace[rf];
-                if (!faceList || faceList.length === 0) continue;
-                const cell = faceList[Math.floor(pseudoRandom() * faceList.length)];
-                const ru = cell.u;
-                const rv = cell.v;
-                if (faceGrids[rf][ru][rv] === -1) {
+                const rfId = Math.floor(pseudoRandom() * facetList.length);
+                if (facetOccupant[rfId] === -1) {
+                  const pickF = facetList[rfId];
                   const newId = tileIdCounter++;
-                  faceGrids[rf][ru][rv] = newId;
+                  facetOccupant[rfId] = newId;
+                  if (faceGrids[pickF.d] && faceGrids[pickF.d][pickF.u]) faceGrids[pickF.d][pickF.u][pickF.v] = newId;
                   const newTile = {
                     id: newId,
-                    face: rf,
-                    u: ru,
-                    v: rv,
-                    fromFace: rf,
-                    fromU: ru,
-                    fromV: rv,
+                    facet: rfId,
+                    fromFacet: rfId,
+                    targetFacet: rfId,
+                    face: pickF.d,
+                    u: pickF.u,
+                    v: pickF.v,
+                    fromFace: pickF.d,
+                    fromU: pickF.u,
+                    fromV: pickF.v,
                     prevFace: -1,
                     prevU: -1,
                     prevV: -1,
-                    targetFace: rf,
-                    targetU: ru,
-                    targetV: rv,
+                    targetFace: pickF.d,
+                    targetU: pickF.u,
+                    targetV: pickF.v,
+                    edge: 0,
+                    prevFacet: -1,
                     isMoving: false,
                     progress: 0.0,
                     moveSpeed: COLOR_BASE_SPEEDS[c] + pseudoRandom() * 0.4,
                     waitTimer: COLOR_WAIT_RANGES[c][0] + pseudoRandom() * (COLOR_WAIT_RANGES[c][1] - COLOR_WAIT_RANGES[c][0]),
-                    dir: pseudoRandom() > 0.5 ? [1, 0] : [0, 1],
+                    dir: [1, 0],
                     vx: 0, vy: 0, vz: 0,
                     stuckTimer: 0.0,
                     colorIndex: c,
@@ -3730,7 +3740,11 @@
                     scale: 0.1,
                     isDying: false,
                     isSpawning: true,
-                    recentHistory: []
+                    trailAlpha: 0.0,
+                    trail2Alpha: 0.0,
+                    trail3Alpha: 0.0,
+                    recentHistory: [],
+                    _px: pickF.p[0], _py: pickF.p[1], _pz: pickF.p[2]
                   };
                   tiles.push(newTile);
                   tileById.set(newId, newTile);
@@ -4497,19 +4511,26 @@
       }
 
       function writeTileAtProgress(data, ptr, t, p, alpha, scaleMult, isMotionBlur = false) {
+        if (!facetList || facetList.length === 0 || !t) return ptr;
+
+        let f1 = (t.fromFacet !== undefined && facetList[t.fromFacet]) ? facetList[t.fromFacet] : null;
+        if (!f1 && t.facet !== undefined && facetList[t.facet]) f1 = facetList[t.facet];
+        if (!f1) f1 = facetList[0];
+        if (!f1 || !f1.p) return ptr;
+
         if (!t.isMoving) {
-          const F = (t.facet !== undefined && facetList[t.facet]) ? facetList[t.facet] : facetList[0];
-          cX = F.p[0]; cY = F.p[1]; cZ = F.p[2];
-          nX = F.n[0]; nY = F.n[1]; nZ = F.n[2];
-          tuX = F.tu[0]; tuY = F.tu[1]; tuZ = F.tu[2];
-          tvX = F.tv[0]; tvY = F.tv[1]; tvZ = F.tv[2];
+          cX = f1.p[0]; cY = f1.p[1]; cZ = f1.p[2];
+          nX = f1.n[0]; nY = f1.n[1]; nZ = f1.n[2];
+          tuX = f1.tu[0]; tuY = f1.tu[1]; tuZ = f1.tu[2];
+          tvX = f1.tv[0]; tvY = f1.tv[1]; tvZ = f1.tv[2];
         } else {
-          const f1 = facetList[t.fromFacet !== undefined ? t.fromFacet : t.facet];
-          const f2 = facetList[t.targetFacet !== undefined ? t.targetFacet : t.facet];
-          const foldType = (f1 && f1.foldTypes && t.edge !== undefined) ? f1.foldTypes[t.edge] : 'flat';
+          let f2 = (t.targetFacet !== undefined && facetList[t.targetFacet]) ? facetList[t.targetFacet] : f1;
+          if (!f2 || !f2.p) f2 = f1;
+
+          const foldType = (f1.foldTypes && t.edge !== undefined && f1.foldTypes[t.edge]) ? f1.foldTypes[t.edge] : 'flat';
           const ease = getTileEase(t, p);
 
-          if (foldType === 'flat' || !f1 || !f2 || !f1.edgeMids || t.edge === undefined) {
+          if (foldType === 'flat' || !f1.edgeMids || t.edge === undefined || !f1.edgeMids[t.edge]) {
             // Smooth coplanar gliding across the same face or coplanar dent surface
             cX = (1.0 - ease) * f1.p[0] + ease * f2.p[0];
             cY = (1.0 - ease) * f1.p[1] + ease * f2.p[1];
@@ -4637,11 +4658,13 @@
           // 2. High-performance shutter motion blur: 1 optical elongated slice directly behind moving tile
           if (t.isMoving && t.progress > 0.04) {
             const speedNorm = Math.min(1.35, Math.max(0.45, (t.moveSpeed || 1.5) * 0.45));
-            const f1 = facetList[t.fromFacet !== undefined ? t.fromFacet : t.facet];
-            let nz = f1 ? (vm[2] * f1.n[0] + vm[6] * f1.n[1] + vm[10] * f1.n[2]) : 1.0;
-            if (t.targetFacet !== t.fromFacet) {
-              const f2 = facetList[t.targetFacet !== undefined ? t.targetFacet : t.facet];
-              if (f1 && f2) {
+            let f1 = (t.fromFacet !== undefined && facetList[t.fromFacet]) ? facetList[t.fromFacet] : null;
+            if (!f1 && t.facet !== undefined && facetList[t.facet]) f1 = facetList[t.facet];
+            if (!f1) f1 = facetList[0];
+            let nz = (f1 && f1.n) ? (vm[2] * f1.n[0] + vm[6] * f1.n[1] + vm[10] * f1.n[2]) : 1.0;
+            if (t.targetFacet !== t.fromFacet && f1 && f1.n) {
+              const f2 = (t.targetFacet !== undefined && facetList[t.targetFacet]) ? facetList[t.targetFacet] : f1;
+              if (f2 && f2.n) {
                 const easeProgress = getTileEase(t, t.progress);
                 const theta = easeProgress * Math.PI * 0.5;
                 const nz1 = vm[2] * f1.n[0] + vm[6] * f1.n[1] + vm[10] * f1.n[2];
@@ -4666,11 +4689,13 @@
         for (let i = 0; i < numTiles; i++) {
           const t = tiles[i];
           if (!t) continue;
-          const f1 = facetList[t.fromFacet !== undefined ? t.fromFacet : t.facet];
-          let nz = f1 ? (vm[2] * f1.n[0] + vm[6] * f1.n[1] + vm[10] * f1.n[2]) : 1.0;
-          if (t.isMoving && t.targetFacet !== t.fromFacet) {
-            const f2 = facetList[t.targetFacet !== undefined ? t.targetFacet : t.facet];
-            if (f1 && f2) {
+          let f1 = (t.fromFacet !== undefined && facetList[t.fromFacet]) ? facetList[t.fromFacet] : null;
+          if (!f1 && t.facet !== undefined && facetList[t.facet]) f1 = facetList[t.facet];
+          if (!f1) f1 = facetList[0];
+          let nz = (f1 && f1.n) ? (vm[2] * f1.n[0] + vm[6] * f1.n[1] + vm[10] * f1.n[2]) : 1.0;
+          if (t.isMoving && t.targetFacet !== t.fromFacet && f1 && f1.n) {
+            const f2 = (t.targetFacet !== undefined && facetList[t.targetFacet]) ? facetList[t.targetFacet] : f1;
+            if (f2 && f2.n) {
               const ease = getTileEase(t, t.progress);
               const theta = ease * Math.PI * 0.5;
               const nz1 = vm[2] * f1.n[0] + vm[6] * f1.n[1] + vm[10] * f1.n[2];
